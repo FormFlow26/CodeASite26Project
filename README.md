@@ -4,7 +4,7 @@
 
 FormFlow is a real-time exercise form analysis platform that watches you lift through your webcam, scores your movement quality rep by rep, and instantly broadcasts form failures to your workout group — so nobody cheats their way through a set alone.
 
-Built in 48 hours at [Hackathon Name] by Team FormFlow.
+Built in 48 hours at the **Code-A-Site Hackathon at Stony Brook University** by **Madhav Gupta, Sri Atragada, Tisha Mehta, and Siddhant Godha**.
 
 ---
 
@@ -87,6 +87,46 @@ The React/Vite frontend is a three-tab Progressive Web App.
 | `snapshotBuffer.js` | Aggregates per-frame data into per-rep summaries |
 | `sessionManager.js` | Coordinates the full session lifecycle with the backend |
 | `socketClient.js` | Socket.IO client; joins group rooms and listens for wipeout events |
+
+---
+
+## 🍃 MongoDB at the Core
+
+MongoDB is not just a storage layer in FormFlow — it is an active participant in the real-time workout experience.
+
+### Document-Oriented Schema Design
+
+Each workout entity maps naturally to a MongoDB document:
+
+- **User** — athlete profile embedding hydration credits and a session counter directly on the document, making leaderboard-adjacent reads zero-join.
+- **Session** — a rich document that stores the full `poseSnapshots` array (one entry per rep) alongside derived stats (`averageFluidity`, `totalKinks`, `maxFluidity`) that are **auto-computed via a Mongoose `pre('save')` hook** — so derived data is always consistent without any application-layer coordination.
+- **FriendPool** — a lightweight group document that scopes every real-time query; membership is stored as an embedded array of user references, keeping group-room fan-out to a single document lookup.
+
+### Change Streams powering real-time push
+
+The most distinctive MongoDB integration is the **change stream** on the `sessions` collection:
+
+```js
+Session.watch().on('change', (change) => {
+  // fires whenever a session document is inserted or updated
+  if (kinks detected in change.fullDocument) {
+    io.to(`group:${groupId}`).emit('WIPEOUT_EVENT', payload);
+  }
+});
+```
+
+This means the backend doesn't need polling or a separate message broker. MongoDB itself becomes the event source: the moment a session with form faults lands in the database — from *any* backend instance — the change stream triggers and Socket.IO broadcasts the `WIPEOUT_EVENT` to every member of that FriendPool in real time. This architecture would scale horizontally without any changes to the application code.
+
+### Aggregation for leaderboard ranking
+
+The top-fluidity leaderboard is served entirely by a **MongoDB aggregation pipeline**:
+
+1. `$group` sessions by `userId`, capturing `$max` fluidity and `$sum` session count
+2. `$sort` by `maxFluidity` descending
+3. `$limit` to the top N entries
+4. `$lookup` to join user display names in a single round-trip
+
+No application-layer sorting or N+1 queries — the database does the heavy lifting.
 
 ---
 
@@ -345,10 +385,6 @@ FormFlow has a strong foundation. Here is where we take it after the hackathon:
 
 ## 👥 Team
 
-Built by **Team FormFlow** — [Madhav] and contributors.
+Built by **Team FormFlow** — **Madhav Gupta, Sri Atragada, Tisha Mehta, and Siddhant Godha** — at the Code-A-Site Hackathon at Stony Brook University.
 
 ---
-
-## 📄 License
-
-MIT
