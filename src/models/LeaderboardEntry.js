@@ -7,26 +7,35 @@ const leaderboardEntrySchema = new mongoose.Schema(
       required: true,
       ref: "User",
       unique: true,
+      index: true,
       index: true
     },
     username: {
       type: String,
       required: true,
+      trim: true,
       trim: true
     },
     displayName: {
       type: String,
       required: true,
+      trim: true,
       trim: true
     },
     hydrationCredits: {
       type: Number,
       default: 0,
+      min: 0,
       min: 0
     },
     highestFluidityScore: {
       type: Number,
       default: 0,
+      min: 0,
+    },
+    latestExerciseType: {
+      type: String,
+      default: "",
       min: 0
     },
     latestExerciseType: {
@@ -36,11 +45,18 @@ const leaderboardEntrySchema = new mongoose.Schema(
     sessionsCompleted: {
       type: Number,
       default: 0,
+      min: 0,
       min: 0
     },
     totalKinks: {
       type: Number,
       default: 0,
+      min: 0,
+    },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
       min: 0
     }
   },

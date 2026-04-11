@@ -57,6 +57,7 @@ async function updateLeaderboardFromSession(session, user) {
     return null;
   }
 
+  const displayName = profile.displayName || profile.username;
   const existingEntry = await LeaderboardEntry.findOne({ userId: session.userId }).lean();
   const highestFluidityScore = Math.max(
     existingEntry?.highestFluidityScore || 0,
@@ -68,23 +69,28 @@ async function updateLeaderboardFromSession(session, user) {
     {
       $set: {
         username: profile.username,
+        displayName,
         displayName: profile.displayName,
         hydrationCredits: profile.hydrationCredits || 0,
         highestFluidityScore,
         latestExerciseType: session.exerciseType,
         sessionsCompleted: profile.completedSessions || 0,
+        totalKinks: (existingEntry?.totalKinks || 0) + (session.sessionSummary?.totalKinks || 0),
+      },
         totalKinks: (existingEntry?.totalKinks || 0) + (session.sessionSummary?.totalKinks || 0)
       }
     },
     {
       upsert: true,
       new: true,
+      setDefaultsOnInsert: true,
       setDefaultsOnInsert: true
     }
   );
 }
 
 module.exports = {
+  updateLeaderboardFromSession,
   ensureLeaderboardEntryForUser,
   syncLeaderboardProfile,
   updateLeaderboardFromSession

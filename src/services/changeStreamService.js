@@ -1,28 +1,44 @@
 const Session = require("../models/Session");
 const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
 
+// Returns the subset of poseSnapshots in the post-change document that
+// represent newly-recorded kinks. Handles three Mongo change shapes:
+//   - insert: every kink in the new document is "new"
+//   - replace: the whole document was replaced; treat all kinks as current
+//   - update: walk updatedFields paths to figure out which snapshot
+//     indices were touched (covers both `poseSnapshots.N.kinkDetected = true`
+//     deep updates and `poseSnapshots.N = {...}` element pushes)
 function extractKinkSnapshots(change) {
-  if (change.operationType === "replace") {
-    const snapshots = change.fullDocument?.poseSnapshots || [];
-    return snapshots.filter((snapshot) => snapshot.kinkDetected);
+  const fullSnapshots = change.fullDocument?.poseSnapshots || [];
+
+  if (change.operationType === "insert" || change.operationType === "replace") {
+    return fullSnapshots.filter((snapshot) => snapshot && snapshot.kinkDetected);
   }
 
   if (change.operationType === "update") {
     const updatedFields = change.updateDescription?.updatedFields || {};
-    const kinkSnapshots = [];
+    const touchedIndices = new Set();
+    let arrayReplaced = false;
 
-    for (const [path, value] of Object.entries(updatedFields)) {
-      const match = path.match(/^poseSnapshots\.(\d+)\.kinkDetected$/);
-      if (match && value === true) {
-        const index = Number(match[1]);
-        const snapshot = change.fullDocument?.poseSnapshots?.[index];
-        if (snapshot) {
-          kinkSnapshots.push(snapshot);
-        }
+    for (const path of Object.keys(updatedFields)) {
+      if (path === "poseSnapshots") {
+        arrayReplaced = true;
+        break;
+      }
+
+      const match = path.match(/^poseSnapshots\.(\d+)/);
+      if (match) {
+        touchedIndices.add(Number(match[1]));
       }
     }
 
-    return kinkSnapshots;
+    if (arrayReplaced) {
+      return fullSnapshots.filter((snapshot) => snapshot && snapshot.kinkDetected);
+    }
+
+    return Array.from(touchedIndices)
+      .map((index) => fullSnapshots[index])
+      .filter((snapshot) => snapshot && snapshot.kinkDetected);
   }
 
   return [];
@@ -54,10 +70,6 @@ function initializeSessionChangeStream(io) {
   changeStream.on("change", async (change) => {
     try {
       if (!["insert", "update", "replace"].includes(change.operationType)) {
-        return;
-      }
-
-      if (change.operationType === "insert") {
         return;
       }
 

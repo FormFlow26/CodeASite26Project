@@ -18,6 +18,11 @@ const poseSnapshotSchema = new mongoose.Schema(
       type: Boolean,
       required: true,
       default: false
+    },
+    angles: {
+      hipAngle: { type: Number },
+      kneeAngle: { type: Number },
+      lumbarFlexion: { type: Number }
     }
   },
   {
@@ -48,6 +53,14 @@ const sessionSchema = new mongoose.Schema(
     poseSnapshots: {
       type: [poseSnapshotSchema],
       default: []
+    },
+    totalScore: {
+      type: Number,
+      default: 0
+    },
+    completedAt: {
+      type: Date,
+      default: null
     },
     sessionSummary: {
       averageFluidity: {
