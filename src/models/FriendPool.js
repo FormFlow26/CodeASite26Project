@@ -10,8 +10,7 @@ const friendPoolSchema = new mongoose.Schema(
     ownerUserId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: "User",
-      index: true
+      ref: "User"
     },
     memberUserIds: {
       type: [mongoose.Schema.Types.ObjectId],
