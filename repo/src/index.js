@@ -7,16 +7,23 @@ import { detectKinks } from "./mediapipe/kinkDetector.js";
 import { createPhaseStateMachine } from "./mediapipe/phaseStateMachine.js";
 import { createSnapshotBuffer } from "./mediapipe/snapshotBuffer.js";
 
+const DEFAULT_SERVER_URL =
+  typeof window !== "undefined" && window.location ? window.location.origin : "http://localhost:4000";
+
 const CONFIG = {
-  userId: "user_abc123",
-  groupId: "group_xyz",
+  userId: "",
+  groupId: "",
   exerciseType: "squat",
   targetSets: 4,
   repsPerSet: 8,
-  serverUrl:
-    (typeof window !== "undefined" && window.__FORMFLOW_SERVER_URL__) ||
-    "http://localhost:4000"
+  serverUrl: DEFAULT_SERVER_URL
 };
+
+function emitStatus(type, message, detail = {}) {
+  if (typeof window !== "undefined" && typeof window.onFormFlowStatus === "function") {
+    window.onFormFlowStatus({ type, message, ...detail });
+  }
+}
 
 function ensureVideoElement() {
   const existingVideo =
@@ -30,26 +37,28 @@ function ensureVideoElement() {
   videoElement.id = "formflow-video";
   videoElement.autoplay = true;
   videoElement.playsInline = true;
-  videoElement.style.position = "fixed";
-  videoElement.style.right = "16px";
-  videoElement.style.bottom = "16px";
-  videoElement.style.width = "240px";
-  videoElement.style.height = "180px";
-  videoElement.style.background = "#000";
+  videoElement.muted = true;
   document.body.appendChild(videoElement);
   return videoElement;
 }
 
 export async function startFormFlow(runtimeConfig = {}) {
   const config = { ...CONFIG, ...runtimeConfig };
+
+  if (!config.userId || !config.groupId) {
+    throw new Error("startFormFlow requires userId and groupId");
+  }
+
   const videoElement = ensureVideoElement();
 
+  emitStatus("loading", "Opening realtime connection");
   const socketClient = await createSocketClient({
     serverUrl: config.serverUrl,
     groupId: config.groupId,
     userId: config.userId
   });
 
+  emitStatus("loading", "Creating workout session");
   const sessionManager = await createSessionManager({
     userId: config.userId,
     groupId: config.groupId,
@@ -74,14 +83,22 @@ export async function startFormFlow(runtimeConfig = {}) {
     }
 
     try {
-      await sessionManager.onRepComplete({
+      const response = await sessionManager.onRepComplete({
         ...repMeta,
         ...repSummary,
         snapshots,
         kinkDetected: repSummary.kinkDetected
       });
+
+      emitStatus("rep-complete", "Rep recorded", {
+        progress: sessionManager.getProgress(),
+        serverProgress: response?.progress || null
+      });
     } catch (error) {
       console.error("Failed to complete rep", error);
+      emitStatus("error", error.message, {
+        context: "rep-complete"
+      });
       socketClient.emit("session-error", {
         context: "rep-complete",
         message: error.message
@@ -92,7 +109,10 @@ export async function startFormFlow(runtimeConfig = {}) {
   const poseEngine = createPoseEngine({
     videoElement,
     exerciseType: config.exerciseType,
-    onWarning: (warning) => socketClient.emit("pose-warning", warning),
+    onWarning: (warning) => {
+      emitStatus("warning", warning.message, warning);
+      socketClient.emit("pose-warning", warning);
+    },
     onFrame: ({ landmarks, timestamp }) => {
       const angles = getLandmarkAngles(landmarks, config.exerciseType);
       const deltaMs = previousTimestamp === null ? 0 : timestamp - previousTimestamp;
@@ -115,7 +135,20 @@ export async function startFormFlow(runtimeConfig = {}) {
     }
   });
 
-  await poseEngine.start();
+  try {
+    emitStatus("loading", "Starting camera and pose engine");
+    await poseEngine.start();
+  } catch (error) {
+    emitStatus("error", error.message, {
+      context: "pose-start"
+    });
+    socketClient.disconnect();
+    throw error;
+  }
+
+  emitStatus("ready", "Pose tracking active", {
+    progress: sessionManager.getProgress()
+  });
 
   return {
     config,
@@ -128,6 +161,7 @@ export async function startFormFlow(runtimeConfig = {}) {
     stop() {
       poseEngine.stop();
       socketClient.disconnect();
+      emitStatus("stopped", "Session stopped");
     }
   };
 }
