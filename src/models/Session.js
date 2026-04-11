@@ -62,6 +62,10 @@ const sessionSchema = new mongoose.Schema(
         type: Number,
         default: 0
       }
+    },
+    completedAt: {
+      type: Date,
+      default: null
     }
   },
   {

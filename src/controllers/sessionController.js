@@ -64,7 +64,8 @@ async function createSession(req, res) {
     }
 
     return res.status(201).json({
-      session,
+      _id: session._id,
+      ...session.toObject(),
       user: updatedUser,
       leaderboard: leaderboardEntry,
       wipeoutEvent: wipeoutEvent.totalKinks > 0 ? wipeoutEvent : null,
@@ -74,7 +75,87 @@ async function createSession(req, res) {
   }
 }
 
+async function addRep(req, res) {
+  try {
+    const { sessionId } = req.params;
+    const { repNumber, fluidityScore, flags } = req.body;
+
+    const snapshot = {
+      timestamp: new Date(),
+      fluidityScore: Number(fluidityScore) || 0,
+      kinkDetected: Array.isArray(flags) && flags.length > 0,
+    };
+
+    const session = await Session.findByIdAndUpdate(
+      sessionId,
+      { $push: { poseSnapshots: snapshot } },
+      { new: false }
+    );
+
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    return res.json({ buffered: true, repNumber, sessionId });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function flushSet(req, res) {
+  try {
+    const { sessionId } = req.params;
+    const { setNumber } = req.body;
+
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    await session.save();
+
+    return res.json({ flushed: true, setNumber, summary: session.sessionSummary });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function completeSession(req, res) {
+  try {
+    const { sessionId } = req.params;
+
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    session.completedAt = new Date();
+    await session.save();
+
+    const io = req.app.get("io");
+
+    if (session.sessionSummary.totalKinks > 0 && io) {
+      const wipeoutPayload = buildWipeoutPayload(session);
+
+      if (session.groupId) {
+        io.to(`group:${session.groupId}`).emit("WIPEOUT_EVENT", wipeoutPayload);
+      }
+
+      io.emit("WIPEOUT_EVENT", wipeoutPayload);
+    }
+
+    return res.json(session.toObject());
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
 module.exports = {
   getSessionById,
-  createSession
+  createSession,
+  addRep,
+  flushSet,
+  completeSession,
 };
