@@ -10,6 +10,8 @@ function serializeSnapshot(snapshot) {
     angles: snapshot.angles || null,
   };
 }
+const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
+const { updateLeaderboardFromSession } = require("../services/leaderboardService");
 
 async function getSessionById(req, res) {
   try {
@@ -45,6 +47,10 @@ async function getSessionById(req, res) {
 async function createSession(req, res) {
   try {
     const session = await Session.create(req.body);
+    const updatedUser = await awardSessionCompletionCredits(session.userId);
+    const leaderboardEntry = await updateLeaderboardFromSession(session, updatedUser);
+    const io = req.app.get("io");
+    const wipeoutEvent = buildWipeoutPayload(session);
 
     return res.status(201).json({
       sessionId: session._id,
@@ -147,6 +153,7 @@ async function completeSession(req, res) {
       summary: session.sessionSummary,
       user: updatedUser,
       leaderboard: leaderboardEntry,
+      wipeoutEvent: wipeoutEvent.totalKinks > 0 ? wipeoutEvent : null,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });

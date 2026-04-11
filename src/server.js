@@ -6,6 +6,7 @@ const express = require("express");
 const { Server } = require("socket.io");
 
 const connectToDatabase = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
 const initializeSessionChangeStream = require("./services/changeStreamService");
 const leaderboardRoutes = require("./routes/leaderboardRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
@@ -52,6 +53,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api/auth", authRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/users", userRoutes);
