@@ -25,6 +25,7 @@ async function getSessionById(req, res) {
       sessionId: session._id,
       exerciseType: session.exerciseType,
       createdAt: session.createdAt,
+      completedAt: session.completedAt,
       updatedAt: session.updatedAt,
       user: session.userId,
       group: session.groupId,
@@ -39,15 +40,14 @@ async function getSessionById(req, res) {
 
 // Wipeout broadcasts are owned by changeStreamService, which now handles
 // inserts as well as updates. createSession only persists the session and
-// awards credits for joining a session.
+// does not mark the session complete until /complete is called.
 async function createSession(req, res) {
   try {
     const session = await Session.create(req.body);
-    const updatedUser = await awardSessionCompletionCredits(session.userId);
 
     return res.status(201).json({
+      sessionId: session._id,
       session,
-      user: updatedUser,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
@@ -126,11 +126,22 @@ async function completeSession(req, res) {
       session.totalScore = req.body.totalScore;
     }
 
+    const shouldAwardCredits = !session.completedAt;
+    if (shouldAwardCredits) {
+      session.completedAt = new Date();
+    }
+
     await session.save();
+    const updatedUser = shouldAwardCredits
+      ? await awardSessionCompletionCredits(session.userId)
+      : null;
+
     return res.json({
       sessionId: session._id,
       totalScore: session.totalScore,
+      completedAt: session.completedAt,
       summary: session.sessionSummary,
+      user: updatedUser,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });

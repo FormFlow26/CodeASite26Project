@@ -62,13 +62,15 @@ export async function createSessionManager({
       },
       "session-init"
     );
+    const createdSession = body?.session || body;
+    const createdSessionId = body?.sessionId || createdSession?._id;
 
-    if (!response.ok || !body?._id) {
+    if (!response.ok || !createdSessionId) {
       throw new Error(body?.error || "Failed to create session");
     }
 
-    sessionId = body._id;
-    return body;
+    sessionId = createdSessionId;
+    return createdSession;
   }
 
   function buildRepPayload(repData) {
