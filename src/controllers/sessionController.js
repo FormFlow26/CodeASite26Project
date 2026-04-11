@@ -1,5 +1,6 @@
 const Session = require("../models/Session");
 const { awardSessionCompletionCredits } = require("./userController");
+const { updateLeaderboardFromSession } = require("../services/leaderboardService");
 
 function serializeSnapshot(snapshot) {
   return {
@@ -135,6 +136,9 @@ async function completeSession(req, res) {
     const updatedUser = shouldAwardCredits
       ? await awardSessionCompletionCredits(session.userId)
       : null;
+    const leaderboardEntry = shouldAwardCredits
+      ? await updateLeaderboardFromSession(session, updatedUser)
+      : null;
 
     return res.json({
       sessionId: session._id,
@@ -142,6 +146,7 @@ async function completeSession(req, res) {
       completedAt: session.completedAt,
       summary: session.sessionSummary,
       user: updatedUser,
+      leaderboard: leaderboardEntry,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
