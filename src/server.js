@@ -81,7 +81,7 @@ function isAllowedOrigin(requestOrigin) {
   try {
     const requestUrl = new URL(requestOrigin);
 
-    return clientOrigins.some((allowedOrigin) => {
+    const matchesLoopback = clientOrigins.some((allowedOrigin) => {
       const allowedUrl = new URL(allowedOrigin);
       const requestIsLoopback = LOOPBACK_HOSTS.has(requestUrl.hostname);
       const allowedIsLoopback = LOOPBACK_HOSTS.has(allowedUrl.hostname);
@@ -93,8 +93,12 @@ function isAllowedOrigin(requestOrigin) {
         allowedIsLoopback
       );
     });
+
+    if (matchesLoopback) {
+      return true;
+    }
   } catch {
-    return clientOriginPatterns.some((pattern) => matchesOriginPattern(requestOrigin, pattern));
+    // fall through to pattern matching
   }
 
   return clientOriginPatterns.some((pattern) => matchesOriginPattern(requestOrigin, pattern));
