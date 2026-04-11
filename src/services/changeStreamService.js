@@ -12,6 +12,12 @@ function extractKinkSnapshots(change) {
     const kinkSnapshots = [];
 
     for (const [path, value] of Object.entries(updatedFields)) {
+      const snapshotMatch = path.match(/^poseSnapshots\.(\d+)$/);
+      if (snapshotMatch && value?.kinkDetected === true) {
+        kinkSnapshots.push(value);
+        continue;
+      }
+
       const match = path.match(/^poseSnapshots\.(\d+)\.kinkDetected$/);
       if (match && value === true) {
         const index = Number(match[1]);
