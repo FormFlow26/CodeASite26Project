@@ -12,12 +12,62 @@ const leaderboardRoutes = require("./routes/leaderboardRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
 const userRoutes = require("./routes/userRoutes");
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const DEFAULT_ORIGIN_PATTERNS = ["https://*.vercel.app"];
 
 const app = express();
 const server = http.createServer(app);
 const clientOrigins = process.env.CLIENT_ORIGIN
   ? process.env.CLIENT_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean)
   : ["http://localhost:5173"];
+const clientOriginPatterns = process.env.CLIENT_ORIGIN_PATTERNS
+  ? process.env.CLIENT_ORIGIN_PATTERNS.split(",").map((pattern) => pattern.trim()).filter(Boolean)
+  : DEFAULT_ORIGIN_PATTERNS;
+
+function escapeRegExp(value) {
+  return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+}
+
+function matchesHostnamePattern(hostname, patternHostname) {
+  if (hostname === patternHostname) {
+    return true;
+  }
+
+  if (!patternHostname.includes("*")) {
+    return false;
+  }
+
+  const pattern = patternHostname
+    .split(".")
+    .map((segment) => (segment === "*" ? "[^.]+": escapeRegExp(segment)))
+    .join("\\.");
+
+  return new RegExp(`^${pattern}$`, "i").test(hostname);
+}
+
+function matchesOriginPattern(requestOrigin, allowedPattern) {
+  try {
+    const requestUrl = new URL(requestOrigin);
+    const [protocol, authority] = allowedPattern.split("://");
+
+    if (!protocol || !authority) {
+      return false;
+    }
+
+    const [patternHostname, patternPort] = authority.split(":");
+
+    if (requestUrl.protocol !== `${protocol}:`) {
+      return false;
+    }
+
+    if (patternPort && requestUrl.port !== patternPort) {
+      return false;
+    }
+
+    return matchesHostnamePattern(requestUrl.hostname, patternHostname);
+  } catch {
+    return false;
+  }
+}
 
 function isAllowedOrigin(requestOrigin) {
   if (!requestOrigin) {
@@ -44,8 +94,10 @@ function isAllowedOrigin(requestOrigin) {
       );
     });
   } catch {
-    return false;
+    return clientOriginPatterns.some((pattern) => matchesOriginPattern(requestOrigin, pattern));
   }
+
+  return clientOriginPatterns.some((pattern) => matchesOriginPattern(requestOrigin, pattern));
 }
 
 const io = new Server(server, {
@@ -87,6 +139,7 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "formflow-api",
     allowedOrigins: clientOrigins,
+    allowedOriginPatterns: clientOriginPatterns,
   });
 });
 
