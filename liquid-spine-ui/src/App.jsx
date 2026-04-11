@@ -8,6 +8,7 @@ import OnboardingModal from './components/OnboardingModal';
 import GymTab from './components/GymTab';
 import SocialTab from './components/SocialTab';
 import {
+  addHydrationCredits,
   connectToRealtimeFeed,
   getRuntimeConfig,
   loginUser,
@@ -352,6 +353,38 @@ function App() {
     setCombo(0);
   };
 
+  const handleAddHydrationCredits = async (credits) => {
+    const targetUserId = playerProfile?._id || authenticatedUser?._id || runtimeConfig.userId;
+
+    if (!targetUserId) {
+      throw new Error('Log in before adding hydration credits.');
+    }
+
+    const updatedUser = normalizeStoredUser(await addHydrationCredits(targetUserId, credits));
+
+    setPlayerProfile((currentProfile) => ({
+      ...(currentProfile || {}),
+      ...updatedUser,
+      _id: updatedUser?._id || currentProfile?._id || targetUserId,
+      groupId: updatedUser?.groupId ?? currentProfile?.groupId ?? null,
+    }));
+
+    setAuthenticatedUser((currentUser) => {
+      if (!currentUser) {
+        return updatedUser;
+      }
+
+      return {
+        ...currentUser,
+        ...updatedUser,
+        _id: updatedUser?._id || currentUser._id,
+        groupId: updatedUser?.groupId ?? currentUser.groupId ?? null,
+      };
+    });
+
+    return updatedUser;
+  };
+
   const handleCompleteOnboarding = (level = 'beginner') => {
     pushCurrentView();
     setSelectedLevel(level);
@@ -449,6 +482,7 @@ function App() {
         playerProfile={playerProfile}
         realtimeStatus={realtimeStatus}
         isWipeoutActive={isWipeoutActive}
+        onAddHydrationCredits={handleAddHydrationCredits}
       />
 
       <div className="app-content">

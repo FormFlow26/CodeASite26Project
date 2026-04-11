@@ -76,6 +76,17 @@ export async function getUserProfile(userId) {
   return requestJson(`${apiBaseUrl}/users/${userId}`);
 }
 
+export async function addHydrationCredits(userId, credits) {
+  const { apiBaseUrl } = getRuntimeConfig();
+  return requestJson(`${apiBaseUrl}/users/${userId}/hydration-credits`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ credits }),
+  });
+}
+
 export async function getSessionReplay(sessionId) {
   const { apiBaseUrl } = getRuntimeConfig();
   return requestJson(`${apiBaseUrl}/sessions/${sessionId}`);

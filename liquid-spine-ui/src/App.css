@@ -354,6 +354,64 @@ body::after {
   font-weight: 800;
 }
 
+.score-card-hydration {
+  min-width: 130px;
+}
+
+.hydration-form {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hydration-input {
+  width: 58px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 18, 40, 0.72);
+  color: var(--text-main);
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.hydration-input:focus {
+  outline: none;
+  border-color: rgba(0, 242, 254, 0.34);
+  box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.1);
+}
+
+.hydration-button {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(108, 235, 245, 0.94), rgba(71, 213, 243, 0.92));
+  color: #06142e;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.hydration-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 242, 254, 0.18);
+}
+
+.hydration-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.hydration-feedback {
+  margin-top: 8px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 @keyframes wave {
   from {
     transform: rotate(0deg);
