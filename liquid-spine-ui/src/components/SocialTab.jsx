@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getLeaderboard } from '../lib/formflowApi';
 
 const PROFILE_STORAGE_KEY = 'formflow-profile-private';
+const PODIUM_LABELS = ['Hydro King', 'Surge Queen', 'Wave Breaker'];
 
 const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
   const [isPrivate, setIsPrivate] = useState(() => {
@@ -47,6 +48,13 @@ const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
       isCancelled = true;
     };
   }, []);
+
+  const maxFluidityScore = leaderboard.reduce(
+    (highestScore, entry) =>
+      Math.max(highestScore, Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0)),
+    1,
+  );
+  const podiumEntries = leaderboard.slice(0, 3);
 
   return (
     <div className="social-layout">
@@ -103,30 +111,83 @@ const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
 
         {leaderboardStatus === 'ready' && (
           leaderboard.length > 0 ? (
-            <div className="leaderboard-list">
-              {leaderboard.map((entry, index) => {
-                const isCurrentUser = currentUserId
-                  ? String(entry.userId) === String(currentUserId)
-                  : false;
+            <>
+              <div className="leaderboard-podium-strip">
+                {podiumEntries.map((entry, index) => {
+                  const isCurrentUser = currentUserId
+                    ? String(entry.userId) === String(currentUserId)
+                    : false;
 
-                return (
-                  <div
-                    key={`${entry.userId}-${index}`}
-                    className={`leaderboard-row ${isCurrentUser ? 'is-current' : ''}`}
-                  >
-                    <div className="leaderboard-rank">#{index + 1}</div>
-                    <div className="leaderboard-user">
-                      <strong>{entry.username || 'Unknown athlete'}</strong>
-                      <span>{entry.latestExerciseType || 'Mixed session'}</span>
+                  return (
+                    <div
+                      key={`${entry.userId}-podium`}
+                      className={`leaderboard-podium-chip leaderboard-podium-chip-${index + 1} ${
+                        isCurrentUser ? 'is-current' : ''
+                      }`}
+                    >
+                      <span className="leaderboard-podium-place">#{index + 1}</span>
+                      <strong className="leaderboard-podium-title">
+                        {PODIUM_LABELS[index] || 'Arena Hero'}
+                      </strong>
+                      <div className="leaderboard-podium-name">
+                        {entry.username || 'Unknown athlete'}
+                      </div>
+                      <div className="leaderboard-podium-meta">
+                        <strong>
+                          {Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0)}
+                        </strong>
+                        <span>{entry.hydrationCredits ?? 0} credits</span>
+                      </div>
                     </div>
-                    <div className="leaderboard-metrics">
-                      <strong>{Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0)}</strong>
-                      <span>{entry.hydrationCredits ?? 0} credits</span>
+                  );
+                })}
+              </div>
+
+              <div className="leaderboard-list">
+                {leaderboard.map((entry, index) => {
+                  const isCurrentUser = currentUserId
+                    ? String(entry.userId) === String(currentUserId)
+                    : false;
+                  const fluidityScore = Math.round(
+                    entry.maxFluidity ?? entry.highestFluidityScore ?? 0,
+                  );
+                  const progressWidth = `${Math.max(
+                    12,
+                    Math.round((fluidityScore / maxFluidityScore) * 100),
+                  )}%`;
+
+                  return (
+                    <div
+                      key={`${entry.userId}-${index}`}
+                      className={`leaderboard-row leaderboard-row-game ${
+                        isCurrentUser ? 'is-current' : ''
+                      }`}
+                    >
+                      <div className="leaderboard-rank-badge">
+                        <div className="leaderboard-rank">#{index + 1}</div>
+                      </div>
+                      <div className="leaderboard-user">
+                        <div className="leaderboard-user-top">
+                          <strong>{entry.username || 'Unknown athlete'}</strong>
+                          {isCurrentUser && <span className="leaderboard-you-tag">YOU</span>}
+                        </div>
+                        <span>{entry.latestExerciseType || 'Mixed session'}</span>
+                        <div className="leaderboard-power-track">
+                          <div
+                            className="leaderboard-power-fill"
+                            style={{ width: progressWidth }}
+                          />
+                        </div>
+                      </div>
+                      <div className="leaderboard-metrics">
+                        <strong>{fluidityScore}</strong>
+                        <span>{entry.hydrationCredits ?? 0} credits</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <div className="status-banner" data-tone="info">
               No leaderboard data has been recorded yet.
