@@ -3,6 +3,22 @@ const { syncLeaderboardProfile } = require("../services/leaderboardService");
 
 async function getUserById(req, res) {
   try {
+    const user = await User.findById(req.params.userId)
+      .populate("groupId", "name ownerUserId memberUserIds")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function getUserById(req, res) {
+  try {
     const user = await User.findById(req.params.userId).lean();
 
     if (!user) {

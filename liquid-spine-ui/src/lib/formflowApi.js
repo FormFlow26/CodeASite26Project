@@ -49,6 +49,28 @@ export async function getLeaderboard() {
   return requestJson(`${apiBaseUrl}/leaderboard/top-fluidity`);
 }
 
+export async function registerUser(payload) {
+  const { apiBaseUrl } = getRuntimeConfig();
+  return requestJson(`${apiBaseUrl}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function loginUser(payload) {
+  const { apiBaseUrl } = getRuntimeConfig();
+  return requestJson(`${apiBaseUrl}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getUserProfile(userId) {
   const { apiBaseUrl } = getRuntimeConfig();
   return requestJson(`${apiBaseUrl}/users/${userId}`);

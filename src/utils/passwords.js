@@ -2,7 +2,6 @@ const crypto = require("crypto");
 
 const SALT_LENGTH = 16;
 const KEY_LENGTH = 64;
-const DIGEST = "sha512";
 
 function hashPassword(password) {
   return new Promise((resolve, reject) => {

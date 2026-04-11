@@ -7,11 +7,17 @@ const OnboardingModal = ({
   onSelectLevel,
   onGoToGym,
   onGoToSocial,
+  onBack,
 }) => {
   if (hasOnboarded) {
     return (
       <div className="main-content home-layout">
         <div className="glass-panel home-hero">
+          {onBack && (
+            <button type="button" className="page-back-button home-back-button" onClick={onBack}>
+              ← Back
+            </button>
+          )}
           <p className="session-kicker">Home Base</p>
           <h2 className="home-title">Welcome Back to FormFlow</h2>
           <p className="home-copy">
@@ -50,40 +56,45 @@ const OnboardingModal = ({
   }
 
   return (
-    <div className="main-content home-layout">
-      <div className="glass-panel home-hero home-hero-onboarding">
+    <div className="onboarding-overlay">
+      <div className="glass-panel onboarding-popup">
+        {onBack && (
+          <button type="button" className="page-back-button modal-back-button" onClick={onBack}>
+            ← Back
+          </button>
+        )}
         <p className="session-kicker">Welcome Sequence</p>
         <h2 className="home-title">Welcome to FormFlow</h2>
-        <p className="home-copy">
+        <p className="home-copy onboarding-copy">
           To calibrate your water limits and skill tree, select your starting
-          class. After this, the Home button will always bring you back here.
+          class.
         </p>
 
-        <div className="home-action-stack">
+        <div className="onboarding-option-stack">
           <button
             type="button"
             onClick={() => onComplete('beginner')}
-            className="home-class-card home-class-card-cyan"
+            className="onboarding-option onboarding-option-cyan"
           >
             <span className="home-class-title">🌱 Beginner Level</span>
             <span className="home-class-copy">
-              Guided form coaching, calmer pace, and a friendlier intro to the gym flow.
+              Guided form coaching and a calmer intro to the gym flow.
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => onComplete('pro')}
-            className="home-class-card home-class-card-coral"
+            className="onboarding-option onboarding-option-coral"
           >
             <span className="home-class-title">🔱 Pro Level</span>
             <span className="home-class-copy">
-              Faster feedback, competitive energy, and a more advanced training vibe.
+              Competitive energy and faster feedback for advanced training.
             </span>
           </button>
         </div>
 
-        <button type="button" onClick={onGoToGym} className="ghost-button">
+        <button type="button" onClick={onGoToGym} className="ghost-button onboarding-skip">
           Skip for now and open the gym
         </button>
       </div>

@@ -19,7 +19,9 @@ const Header = ({
     <header className="app-header">
       <div>
         <p className="session-kicker">
-          {playerProfile?.username ? `${playerProfile.username} live dashboard` : 'Training Session'}
+          {playerProfile?.username
+            ? `${playerProfile.username} live dashboard`
+            : 'Training Session'}
         </p>
         <h1 className="app-title">FORMFLOW</h1>
         <div className="header-meta-row">

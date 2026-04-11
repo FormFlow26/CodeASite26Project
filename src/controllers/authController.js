@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const FriendPool = require("../models/FriendPool");
 const { hashPassword, verifyPassword } = require("../utils/passwords");
 const { ensureLeaderboardEntryForUser } = require("../services/leaderboardService");
 
@@ -10,6 +11,27 @@ function sanitizeUser(user) {
   const plainUser = typeof user.toJSON === "function" ? user.toJSON() : user;
   delete plainUser.passwordHash;
   return plainUser;
+}
+
+async function ensureUserFriendPool(user) {
+  if (!user) {
+    return null;
+  }
+
+  if (user.groupId) {
+    return user.groupId;
+  }
+
+  const friendPool = await FriendPool.create({
+    name: `${user.displayName || user.username}'s Squad`,
+    ownerUserId: user._id,
+    memberUserIds: [user._id],
+  });
+
+  user.groupId = friendPool._id;
+  await user.save();
+
+  return friendPool._id;
 }
 
 async function registerUser(req, res) {
@@ -42,6 +64,7 @@ async function registerUser(req, res) {
       passwordHash
     });
 
+    await ensureUserFriendPool(user);
     await ensureLeaderboardEntryForUser(user);
 
     return res.status(201).json({
@@ -77,6 +100,7 @@ async function loginUser(req, res) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    await ensureUserFriendPool(user);
     user.lastLoginAt = new Date();
     await user.save();
 

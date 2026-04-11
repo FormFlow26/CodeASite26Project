@@ -1,4 +1,5 @@
 const Session = require("../models/Session");
+const User = require("../models/User");
 const { awardSessionCompletionCredits } = require("./userController");
 const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
 const { updateLeaderboardFromSession } = require("../services/leaderboardService");
@@ -35,7 +36,20 @@ async function getSessionById(req, res) {
 
 async function createSession(req, res) {
   try {
-    const session = await Session.create(req.body);
+    const sessionPayload = { ...req.body };
+
+    if (!sessionPayload.groupId && sessionPayload.userId) {
+      const user = await User.findById(sessionPayload.userId).select("groupId").lean();
+      if (user?.groupId) {
+        sessionPayload.groupId = user.groupId;
+      }
+    }
+
+    if (!sessionPayload.groupId) {
+      return res.status(400).json({ error: "groupId is required to create a session" });
+    }
+
+    const session = await Session.create(sessionPayload);
     const updatedUser = await awardSessionCompletionCredits(session.userId);
     const leaderboardEntry = await updateLeaderboardFromSession(session, updatedUser);
     const io = req.app.get("io");
