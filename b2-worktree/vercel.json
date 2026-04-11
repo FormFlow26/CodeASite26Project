@@ -1,6 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd liquid-spine-ui && npm install",
-  "buildCommand": "cd liquid-spine-ui && npm run build",
-  "outputDirectory": "liquid-spine-ui/dist"
-}
