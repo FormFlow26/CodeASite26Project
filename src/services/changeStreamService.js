@@ -1,7 +1,8 @@
 const Session = require("../models/Session");
+const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
 
 function extractKinkSnapshots(change) {
-  if (change.operationType === "insert" || change.operationType === "replace") {
+  if (change.operationType === "replace") {
     const snapshots = change.fullDocument?.poseSnapshots || [];
     return snapshots.filter((snapshot) => snapshot.kinkDetected);
   }
@@ -38,17 +39,13 @@ async function emitWipeoutForSession(change, io) {
     return;
   }
 
-  io.to(`group:${session.groupId}`).emit("WIPEOUT_EVENT", {
-    userId: session.userId,
-    exerciseType: session.exerciseType,
-    sessionId: session._id,
-    groupId: session.groupId,
-    kinkSnapshots: kinkSnapshots.map((snapshot) => ({
-      timestamp: snapshot.timestamp,
-      fluidityScore: snapshot.fluidityScore,
-      kinkDetected: snapshot.kinkDetected
-    }))
-  });
+  const payload = buildWipeoutPayload(session, kinkSnapshots);
+
+  if (session.groupId) {
+    io.to(`group:${session.groupId}`).emit("WIPEOUT_EVENT", payload);
+  }
+
+  io.emit("WIPEOUT_EVENT", payload);
 }
 
 function initializeSessionChangeStream(io) {
@@ -57,6 +54,10 @@ function initializeSessionChangeStream(io) {
   changeStream.on("change", async (change) => {
     try {
       if (!["insert", "update", "replace"].includes(change.operationType)) {
+        return;
+      }
+
+      if (change.operationType === "insert") {
         return;
       }
 

@@ -39,6 +39,7 @@ async function getTopFluidityLeaderboard(_req, res) {
           username: "$user.username",
           hydrationCredits: "$user.hydrationCredits",
           highestFluidityScore: 1,
+          maxFluidity: "$highestFluidityScore",
           latestExerciseType: 1,
           sessionsCompleted: 1
         }

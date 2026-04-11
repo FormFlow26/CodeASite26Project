@@ -3,6 +3,7 @@ const { getTopFluidityLeaderboard } = require("../controllers/leaderboardControl
 
 const router = express.Router();
 
+router.get("/", getTopFluidityLeaderboard);
 router.get("/top-fluidity", getTopFluidityLeaderboard);
 
 module.exports = router;
