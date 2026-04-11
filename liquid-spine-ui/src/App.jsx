@@ -31,6 +31,16 @@ function sameView(firstView, secondView) {
   );
 }
 
+function renderAppSurface(content, toneClass = '') {
+  return (
+    <div className={`mobile-scene ${toneClass}`.trim()}>
+      <div className="mobile-surface">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [playerScore, setPlayerScore] = useState(1250);
   const [combo, setCombo] = useState(3);
@@ -326,21 +336,22 @@ function App() {
   const canGoBack = navHistory.length > 0;
 
   if (!showLoginGate) {
-    return <LandingPage onStart={handleOpenAuth} />;
+    return renderAppSurface(<LandingPage onStart={handleOpenAuth} />, 'mobile-scene-landing');
   }
 
   if (!hasEnteredApp) {
-    return (
+    return renderAppSurface(
       <LoginGate
         authMode={authMode}
         onLogin={handleLogin}
         onSwitchMode={setAuthMode}
         onBack={canGoBack ? handleBack : null}
-      />
+      />,
+      'mobile-scene-login',
     );
   }
 
-  return (
+  return renderAppSurface(
     <div className={`app-shell ${isWipeoutActive ? 'is-wipeout-active' : ''}`}>
       <Header
         playerScore={playerScore}
@@ -408,7 +419,8 @@ function App() {
       <div className="app-bottom-dock">
         <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
       </div>
-    </div>
+    </div>,
+    'mobile-scene-app',
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReplayChart from './ReplayChart';
+import tankBodyReference from '../assets/tank-body-reference.png';
 
 const MUSCLE_PRESETS = {
   Quads: { fill: 30, goal: '4 Sets of 12', tips: 'Keep heels planted.' },
@@ -191,6 +192,21 @@ const GymTab = ({
             className="water-container"
             style={{ transform: isCameraReady ? 'scale(0.8)' : 'scale(1)' }}
           >
+            <div className="tank-muscle-badge">{activeMuscle}</div>
+            <div className={`tank-muscle-graphic tank-muscle-graphic--${activeMuscle.toLowerCase()}`}>
+              <img
+                src={tankBodyReference}
+                alt=""
+                className="tank-body-reference"
+                aria-hidden="true"
+              />
+              <div className="tank-muscle-overlay">
+                <span className="tank-highlight tank-highlight-chest" />
+                <span className="tank-highlight tank-highlight-back" />
+                <span className="tank-highlight tank-highlight-quad-left" />
+                <span className="tank-highlight tank-highlight-quad-right" />
+              </div>
+            </div>
             <div
               className="water-fill"
               style={{ height: `${activeMuscleData.fill}%` }}
