@@ -25,6 +25,28 @@ const VALID_TABS = ['home', 'main', 'social'];
 const VALID_LEVELS = ['beginner', 'pro'];
 const runtimeConfig = getRuntimeConfig();
 
+function normalizeStoredUser(user) {
+  if (!user || typeof user !== 'object') {
+    return null;
+  }
+
+  const normalizedId = user._id || user.id || user.userId || '';
+  const normalizedGroupId =
+    (user.groupId && typeof user.groupId === 'object' ? user.groupId._id : user.groupId)
+    || (user.group && typeof user.group === 'object' ? user.group._id : user.group)
+    || '';
+
+  if (!normalizedId) {
+    return null;
+  }
+
+  return {
+    ...user,
+    _id: normalizedId,
+    groupId: normalizedGroupId || user.groupId || null,
+  };
+}
+
 function getStoredAuthUser() {
   if (typeof window === 'undefined') {
     return null;
@@ -36,7 +58,7 @@ function getStoredAuthUser() {
   }
 
   try {
-    return JSON.parse(rawUser);
+    return normalizeStoredUser(JSON.parse(rawUser));
   } catch {
     return null;
   }
@@ -344,7 +366,7 @@ function App() {
           password,
         });
 
-      const nextUser = response.user;
+      const nextUser = normalizeStoredUser(response.user);
       setAuthenticatedUser(nextUser);
       pushCurrentView();
       setHasEnteredApp(true);

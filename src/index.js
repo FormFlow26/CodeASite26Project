@@ -74,11 +74,17 @@ export async function startFormFlow(runtimeConfig = {}) {
     }
 
     try {
+      const resolvedFlags = repMeta.flags ?? repSummary.allFlags;
+      const resolvedKinkDetected =
+        typeof repMeta.kinkDetected === "boolean"
+          ? repMeta.kinkDetected
+          : resolvedFlags.length > 0 || repSummary.kinkDetected;
+
       await sessionManager.onRepComplete({
         ...repMeta,
         ...repSummary,
         snapshots,
-        kinkDetected: repSummary.kinkDetected
+        kinkDetected: resolvedKinkDetected
       });
     } catch (error) {
       console.error("Failed to complete rep", error);

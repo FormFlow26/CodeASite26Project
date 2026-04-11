@@ -38,8 +38,34 @@ function createEmptyRepStats() {
     startedAt: null,
     fluiditySamples: [],
     peakKinkCount: 0,
-    flags: new Set()
+    totalSnapshots: 0,
+    flagCounts: {}
   };
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getTrimmedAverage(values) {
+  const validValues = values
+    .filter((value) => Number.isFinite(value))
+    .map((value) => clamp(value, 0, 100));
+
+  if (validValues.length === 0) {
+    return 0;
+  }
+
+  const sortedValues = [...validValues].sort((left, right) => left - right);
+  const trimCount =
+    sortedValues.length >= 8 ? Math.floor(sortedValues.length * 0.15) : sortedValues.length >= 5 ? 1 : 0;
+  const trimmedValues =
+    trimCount > 0 && trimCount * 2 < sortedValues.length
+      ? sortedValues.slice(trimCount, sortedValues.length - trimCount)
+      : sortedValues;
+
+  const total = trimmedValues.reduce((sum, value) => sum + value, 0);
+  return Number((total / trimmedValues.length).toFixed(2));
 }
 
 export function createPhaseStateMachine(exerciseType, onRepComplete) {
@@ -61,6 +87,8 @@ export function createPhaseStateMachine(exerciseType, onRepComplete) {
       repStats.startedAt = snapshot.timestamp;
     }
 
+    repStats.totalSnapshots += 1;
+
     if (Number.isFinite(snapshot.fluidityScore)) {
       repStats.fluiditySamples.push(snapshot.fluidityScore);
     }
@@ -69,17 +97,27 @@ export function createPhaseStateMachine(exerciseType, onRepComplete) {
     repStats.peakKinkCount = Math.max(repStats.peakKinkCount, kinkCount);
 
     for (const flag of snapshot.flags || []) {
-      repStats.flags.add(flag);
+      repStats.flagCounts[flag] = (repStats.flagCounts[flag] || 0) + 1;
     }
   }
 
   function getAverageFluidity() {
-    if (repStats.fluiditySamples.length === 0) {
-      return 0;
+    return getTrimmedAverage(repStats.fluiditySamples);
+  }
+
+  function getStableFlags() {
+    const entries = Object.entries(repStats.flagCounts);
+
+    if (entries.length === 0 || repStats.totalSnapshots === 0) {
+      return [];
     }
 
-    const total = repStats.fluiditySamples.reduce((sum, value) => sum + value, 0);
-    return Number((total / repStats.fluiditySamples.length).toFixed(2));
+    const minFramesRequired = Math.max(3, Math.ceil(repStats.totalSnapshots * 0.18));
+
+    return entries
+      .filter(([, count]) => count >= minFramesRequired)
+      .sort((left, right) => right[1] - left[1])
+      .map(([flag]) => flag);
   }
 
   function completeRep(timestamp) {
@@ -91,11 +129,14 @@ export function createPhaseStateMachine(exerciseType, onRepComplete) {
       return;
     }
 
+    const stableFlags = getStableFlags();
     const repSnapshot = {
       durationMs,
       avgFluidityScore: getAverageFluidity(),
       peakKinkCount: repStats.peakKinkCount,
-      flags: Array.from(repStats.flags)
+      totalSnapshots: repStats.totalSnapshots,
+      flags: stableFlags,
+      kinkDetected: stableFlags.length > 0
     };
 
     onRepComplete?.(repSnapshot);

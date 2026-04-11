@@ -1,8 +1,36 @@
 const Session = require("../models/Session");
 const User = require("../models/User");
+const FriendPool = require("../models/FriendPool");
 const { awardSessionCompletionCredits } = require("./userController");
 const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
 const { updateLeaderboardFromSession } = require("../services/leaderboardService");
+
+async function ensureSessionGroupId(sessionPayload) {
+  if (sessionPayload.groupId || !sessionPayload.userId) {
+    return sessionPayload.groupId || null;
+  }
+
+  const user = await User.findById(sessionPayload.userId);
+  if (!user) {
+    return null;
+  }
+
+  if (user.groupId) {
+    sessionPayload.groupId = user.groupId;
+    return sessionPayload.groupId;
+  }
+
+  const friendPool = await FriendPool.create({
+    name: `${user.displayName || user.username}'s Squad`,
+    ownerUserId: user._id,
+    memberUserIds: [user._id],
+  });
+
+  user.groupId = friendPool._id;
+  await user.save();
+  sessionPayload.groupId = friendPool._id;
+  return sessionPayload.groupId;
+}
 
 async function getSessionById(req, res) {
   try {
@@ -37,13 +65,7 @@ async function getSessionById(req, res) {
 async function createSession(req, res) {
   try {
     const sessionPayload = { ...req.body };
-
-    if (!sessionPayload.groupId && sessionPayload.userId) {
-      const user = await User.findById(sessionPayload.userId).select("groupId").lean();
-      if (user?.groupId) {
-        sessionPayload.groupId = user.groupId;
-      }
-    }
+    await ensureSessionGroupId(sessionPayload);
 
     if (!sessionPayload.groupId) {
       return res.status(400).json({ error: "groupId is required to create a session" });

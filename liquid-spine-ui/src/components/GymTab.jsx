@@ -20,6 +20,10 @@ const INITIAL_FEEDBACK = {
   text: 'Choose a focus area and start the form check when you are ready.',
 };
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 const GymTab = ({
   onSuccessfulRep,
   onRejectedRep,
@@ -35,19 +39,22 @@ const GymTab = ({
   const [cameraStatus, setCameraStatus] = useState('idle');
   const [cameraError, setCameraError] = useState('');
   const [feedback, setFeedback] = useState(INITIAL_FEEDBACK);
-  const [muscleData, setMuscleData] = useState(MUSCLE_PRESETS);
+  const [muscleData] = useState(MUSCLE_PRESETS);
+  const [lastRepFluidity, setLastRepFluidity] = useState(null);
+  const [lastRepFlags, setLastRepFlags] = useState([]);
   const videoRef = useRef(null);
   const formflowRef = useRef(null);
 
   const { userId, groupId, socketUrl } = getRuntimeConfig();
   const resolvedUserId = currentUserId || userId;
   const resolvedGroupId = currentGroupId || groupId;
-  const hasTracking = Boolean(resolvedUserId && resolvedGroupId);
-
-  const formStatus = 'perfect';
+  const hasTracking = Boolean(resolvedUserId);
   const isCameraReady = cameraStatus === 'ready';
   const isRequestingCamera = cameraStatus === 'requesting';
   const activeMuscleData = muscleData[activeMuscle];
+  const displayedFill = isCameraReady
+    ? clamp(Math.round(lastRepFluidity ?? activeMuscleData.fill), 0, 100)
+    : activeMuscleData.fill;
   const liveKinkCount =
     wipeoutEvent?.totalKinks ?? wipeoutEvent?.kinkSnapshots?.length ?? 0;
   const liveWipeoutMessage = wipeoutEvent
@@ -58,6 +65,8 @@ const GymTab = ({
     formflowRef.current?.stop();
     formflowRef.current = null;
     setCameraStatus('idle');
+    setLastRepFluidity(null);
+    setLastRepFlags([]);
     setFeedback(INITIAL_FEEDBACK);
   };
 
@@ -79,6 +88,8 @@ const GymTab = ({
     }
 
     setCameraError('');
+    setLastRepFluidity(null);
+    setLastRepFlags([]);
     setFeedback({
       tone: 'info',
       text: 'Loading MediaPipe and requesting camera access...',
@@ -94,25 +105,27 @@ const GymTab = ({
         groupId: resolvedGroupId,
         exerciseType,
         serverUrl: socketUrl,
-        onRepComplete: ({ kinkDetected, fluidityScore }) => {
+        onSystemError: ({ message }) => {
+          setFeedback({
+            tone: 'warning',
+            text: message || 'Live sync is unavailable, but local camera tracking is still active.',
+          });
+        },
+        onRepComplete: ({ kinkDetected, fluidityScore, flags }) => {
+          setLastRepFluidity(fluidityScore);
+          setLastRepFlags(flags || []);
+
           if (kinkDetected) {
             onRejectedRep?.();
             setFeedback({
               tone: 'warning',
-              text: `Form issue detected. Fluidity: ${Math.round(fluidityScore ?? 0)}. Reset and try again.`,
+              text: `Rep flagged for review. Average fluidity ${Math.round(fluidityScore ?? 0)}%. Adjust your posture and try another rep.`,
             });
           } else {
-            setMuscleData((currentData) => ({
-              ...currentData,
-              [activeMuscle]: {
-                ...currentData[activeMuscle],
-                fill: Math.min(currentData[activeMuscle].fill + 15, 100),
-              },
-            }));
             onSuccessfulRep?.(activeMuscle);
             setFeedback({
               tone: 'success',
-              text: `Clean rep synced. Fluidity: ${Math.round(fluidityScore ?? 0)}.`,
+              text: `Clean rep captured. Average fluidity ${Math.round(fluidityScore ?? 0)}%.`,
             });
           }
         },
@@ -120,53 +133,26 @@ const GymTab = ({
 
       setCameraStatus('ready');
       setFeedback({
-        tone: 'success',
-        text: 'MediaPipe live. Stay centered and perform a rep to start tracking.',
+        tone: 'info',
+        text: 'MediaPipe live. Complete one full rep to score your form.',
       });
     } catch (error) {
+      console.error('Failed to start FormFlow camera', error);
       setCameraStatus('error');
       formflowRef.current = null;
       setCameraError(
         error?.name === 'NotAllowedError'
           ? 'Camera permission was denied.'
-          : 'Camera could not be started right now.',
+          : error?.message || 'Camera could not be started right now.',
       );
       setFeedback({
         tone: 'warning',
         text:
           error?.name === 'NotAllowedError'
             ? 'Permission was denied. You can retry when you are ready.'
-            : 'There was a problem starting the camera. Try again in a moment.',
+            : error?.message || 'There was a problem starting the camera. Try again in a moment.',
       });
     }
-  };
-
-  const handleRepSync = () => {
-    if (!isCameraReady) {
-      return;
-    }
-
-    if (formStatus === 'perfect') {
-      setMuscleData((currentData) => ({
-        ...currentData,
-        [activeMuscle]: {
-          ...currentData[activeMuscle],
-          fill: Math.min(currentData[activeMuscle].fill + 15, 100),
-        },
-      }));
-      onSuccessfulRep?.(activeMuscle);
-      setFeedback({
-        tone: 'success',
-        text: `${activeMuscle} synced cleanly. Tank filled by 15%.`,
-      });
-      return;
-    }
-
-    onRejectedRep?.();
-    setFeedback({
-      tone: 'warning',
-      text: 'Rep rejected. Reset your posture, brace, and try the movement again.',
-    });
   };
 
   return (
@@ -215,9 +201,9 @@ const GymTab = ({
           >
             <div
               className="water-fill"
-              style={{ height: `${activeMuscleData.fill}%` }}
+              style={{ height: `${displayedFill}%` }}
             />
-            <div className="water-level-label">{activeMuscleData.fill}%</div>
+            <div className="water-level-label">{displayedFill}%</div>
           </div>
 
           <div className="camera-shell" style={{ display: isCameraReady ? 'block' : 'none' }}>
@@ -231,22 +217,11 @@ const GymTab = ({
                 height: '220px',
                 objectFit: 'cover',
                 borderRadius: '15px',
-                border: `4px solid ${
-                  formStatus === 'perfect'
-                    ? 'var(--moana-cyan)'
-                    : 'var(--moana-coral)'
-                }`,
-                boxShadow:
-                  formStatus === 'bad'
-                    ? '0 0 20px var(--moana-coral)'
-                    : '0 0 20px rgba(0, 242, 254, 0.15)',
+                border: '4px solid var(--moana-cyan)',
+                boxShadow: '0 0 20px rgba(0, 242, 254, 0.15)',
                 transition: 'all 0.3s ease',
               }}
             />
-
-            {formStatus === 'bad' && (
-              <div className="camera-banner">Alignment error detected</div>
-            )}
           </div>
         </div>
 
@@ -264,7 +239,7 @@ const GymTab = ({
 
         {!hasTracking && (
           <div className="status-banner" data-tone="warning">
-            Log in or set VITE_USER_ID and VITE_GROUP_ID in liquid-spine-ui/.env to enable live tracking
+            Log in or set VITE_USER_ID in liquid-spine-ui/.env to enable live tracking
           </div>
         )}
 
@@ -272,15 +247,23 @@ const GymTab = ({
           {feedback.text}
         </div>
 
+        {isCameraReady && lastRepFluidity !== null && (
+          <div className="status-banner" data-tone="info">
+            Last rep quality: {Math.round(lastRepFluidity)}%
+          </div>
+        )}
+
+        {isCameraReady && lastRepFlags.length > 0 && (
+          <div className="status-banner" data-tone="warning">
+            Last rep flags: {lastRepFlags.join(', ')}
+          </div>
+        )}
+
         {isCameraReady ? (
           <div className="action-stack">
-            <button
-              type="button"
-              onClick={handleRepSync}
-              className={`primary-button ${formStatus === 'bad' ? 'is-disabled' : ''}`}
-            >
-              {formStatus === 'perfect' ? 'SYNC PERFECT REP' : 'REP REJECTED'}
-            </button>
+            <div className="status-banner" data-tone="info">
+              Automatic rep detection is active. Move through the exercise and FormFlow will score reps as they complete.
+            </div>
 
             <button type="button" onClick={stopCamera} className="ghost-button">
               Stop camera

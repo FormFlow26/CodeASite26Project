@@ -15,9 +15,8 @@ const LANDMARK_INDEX = {
 
 export const KINK_THRESHOLDS = {
   squat: {
-    knee_valgus: 0.05,
-    depth: 100,
-    lumbar_flex: 40
+    knee_valgus: 0.18,
+    lumbar_flex: 68
   },
   deadlift: {
     lumbar_flex: 35,
@@ -45,6 +44,37 @@ function getSpan(left, right, axis = "x") {
   return Math.abs(left[axis] - right[axis]);
 }
 
+function distance2D(left, right) {
+  if (!left || !right) {
+    return 0;
+  }
+
+  const dx = left.x - right.x;
+  const dy = left.y - right.y;
+  return Math.sqrt(dx ** 2 + dy ** 2);
+}
+
+function average(values) {
+  const validValues = values.filter((value) => Number.isFinite(value) && value > 0);
+  if (validValues.length === 0) {
+    return 0;
+  }
+
+  return validValues.reduce((sum, value) => sum + value, 0) / validValues.length;
+}
+
+function isFrontFacingLowerBody(leftShoulder, rightShoulder, leftHip, rightHip) {
+  const torsoLength = average([
+    distance2D(leftShoulder, leftHip),
+    distance2D(rightShoulder, rightHip)
+  ]) || 1;
+  const shoulderSpan = getSpan(leftShoulder, rightShoulder);
+  const hipSpan = getSpan(leftHip, rightHip);
+  const widthRatio = Math.max(shoulderSpan, hipSpan) / torsoLength;
+
+  return widthRatio >= 0.55;
+}
+
 function addFlag(flags, flag) {
   if (!flags.includes(flag)) {
     flags.push(flag);
@@ -53,6 +83,8 @@ function addFlag(flags, flag) {
 
 function detectSquatKinks(landmarks, angles, flags) {
   const thresholds = KINK_THRESHOLDS.squat;
+  const leftShoulder = getLandmark(landmarks, LANDMARK_INDEX.LEFT_SHOULDER);
+  const rightShoulder = getLandmark(landmarks, LANDMARK_INDEX.RIGHT_SHOULDER);
   const leftKnee = getLandmark(landmarks, LANDMARK_INDEX.LEFT_KNEE);
   const rightKnee = getLandmark(landmarks, LANDMARK_INDEX.RIGHT_KNEE);
   const leftAnkle = getLandmark(landmarks, LANDMARK_INDEX.LEFT_ANKLE);
@@ -64,16 +96,20 @@ function detectSquatKinks(landmarks, angles, flags) {
   const ankleSpan = getSpan(leftAnkle, rightAnkle);
   const hipSpan = getSpan(leftHip, rightHip) || 1;
   const inwardCollapse = Math.max(0, ankleSpan - kneeSpan) / hipSpan;
+  const frontFacing = isFrontFacingLowerBody(leftShoulder, rightShoulder, leftHip, rightHip);
+  const evaluatingDepth = angles.hipAngle < 145 || angles.kneeAngle < 145;
 
-  if (inwardCollapse > thresholds.knee_valgus) {
+  if (
+    frontFacing &&
+    evaluatingDepth &&
+    ankleSpan > 0.03 &&
+    kneeSpan < hipSpan * 0.9 &&
+    inwardCollapse > thresholds.knee_valgus
+  ) {
     addFlag(flags, "knee_valgus");
   }
 
-  if (angles.hipAngle > thresholds.depth && angles.hipAngle < thresholds.depth + 25) {
-    addFlag(flags, "depth");
-  }
-
-  if (angles.lumbarFlexion > thresholds.lumbar_flex) {
+  if (evaluatingDepth && angles.lumbarFlexion > thresholds.lumbar_flex) {
     addFlag(flags, "lumbar_flex");
   }
 }

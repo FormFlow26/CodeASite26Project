@@ -61,6 +61,39 @@ function getLandmark(landmarks, index) {
   return landmark;
 }
 
+function getVisibility(landmark) {
+  return Number.isFinite(landmark?.visibility) ? landmark.visibility : 0;
+}
+
+function getDominantLowerBodySide(leftShoulder, rightShoulder, leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle) {
+  const leftVisibility = average([
+    getVisibility(leftShoulder),
+    getVisibility(leftHip),
+    getVisibility(leftKnee),
+    getVisibility(leftAnkle)
+  ]);
+  const rightVisibility = average([
+    getVisibility(rightShoulder),
+    getVisibility(rightHip),
+    getVisibility(rightKnee),
+    getVisibility(rightAnkle)
+  ]);
+
+  return leftVisibility >= rightVisibility
+    ? {
+      shoulder: leftShoulder,
+      hip: leftHip,
+      knee: leftKnee,
+      ankle: leftAnkle
+    }
+    : {
+      shoulder: rightShoulder,
+      hip: rightHip,
+      knee: rightKnee,
+      ankle: rightAnkle
+    };
+}
+
 export function computeAngle(a, b, c) {
   const vectorBA = subtractPoints(a, b);
   const vectorBC = subtractPoints(c, b);
@@ -75,10 +108,8 @@ export function computeAngle(a, b, c) {
   return (Math.acos(cosine) * 180) / Math.PI;
 }
 
-function computeLumbarFlexion(leftShoulder, rightShoulder, leftHip, rightHip) {
-  const shoulderMidpoint = midpoint(leftShoulder, rightShoulder);
-  const hipMidpoint = midpoint(leftHip, rightHip);
-  const torsoVector = subtractPoints(shoulderMidpoint, hipMidpoint);
+function computeTorsoFlexion(shoulder, hip) {
+  const torsoVector = subtractPoints(shoulder, hip);
   const torsoMagnitude = vectorMagnitude(torsoVector);
 
   if (torsoMagnitude === 0) {
@@ -94,6 +125,12 @@ function computeLumbarFlexion(leftShoulder, rightShoulder, leftHip, rightHip) {
   return (Math.acos(cosine) * 180) / Math.PI;
 }
 
+function computeLumbarFlexion(leftShoulder, rightShoulder, leftHip, rightHip) {
+  const shoulderMidpoint = midpoint(leftShoulder, rightShoulder);
+  const hipMidpoint = midpoint(leftHip, rightHip);
+  return computeTorsoFlexion(shoulderMidpoint, hipMidpoint);
+}
+
 function computeLowerBodyAngles(landmarks) {
   const leftShoulder = getLandmark(landmarks, LANDMARK_INDEX.LEFT_SHOULDER);
   const rightShoulder = getLandmark(landmarks, LANDMARK_INDEX.RIGHT_SHOULDER);
@@ -103,17 +140,21 @@ function computeLowerBodyAngles(landmarks) {
   const rightKnee = getLandmark(landmarks, LANDMARK_INDEX.RIGHT_KNEE);
   const leftAnkle = getLandmark(landmarks, LANDMARK_INDEX.LEFT_ANKLE);
   const rightAnkle = getLandmark(landmarks, LANDMARK_INDEX.RIGHT_ANKLE);
+  const dominantSide = getDominantLowerBodySide(
+    leftShoulder,
+    rightShoulder,
+    leftHip,
+    rightHip,
+    leftKnee,
+    rightKnee,
+    leftAnkle,
+    rightAnkle
+  );
 
   return {
-    hipAngle: average([
-      computeAngle(leftShoulder, leftHip, leftKnee),
-      computeAngle(rightShoulder, rightHip, rightKnee)
-    ]),
-    kneeAngle: average([
-      computeAngle(leftHip, leftKnee, leftAnkle),
-      computeAngle(rightHip, rightKnee, rightAnkle)
-    ]),
-    lumbarFlexion: computeLumbarFlexion(leftShoulder, rightShoulder, leftHip, rightHip)
+    hipAngle: computeAngle(dominantSide.shoulder, dominantSide.hip, dominantSide.knee),
+    kneeAngle: computeAngle(dominantSide.hip, dominantSide.knee, dominantSide.ankle),
+    lumbarFlexion: computeTorsoFlexion(dominantSide.shoulder, dominantSide.hip)
   };
 }
 

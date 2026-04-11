@@ -1,5 +1,6 @@
-const EMA_ALPHA = 0.3;
-const SENSITIVITY = 2.5;
+const EMA_ALPHA = 0.25;
+const SENSITIVITY = 0.95;
+const VELOCITY_PENALTY_SCALE = 420;
 const JOINT_WEIGHTS = {
   hipAngle: 0.4,
   kneeAngle: 0.4,
@@ -48,7 +49,7 @@ export function computeFluidityScore(scorer, currentAngles, prevAngles, deltaMs)
     scorer.emaVelocity.kneeAngle * JOINT_WEIGHTS.kneeAngle +
     scorer.emaVelocity.lumbarFlexion * JOINT_WEIGHTS.lumbarFlexion;
 
-  const score = clamp(100 - weightedVelocity * SENSITIVITY * 1000, 0, 100);
+  const score = clamp(100 - weightedVelocity * SENSITIVITY * VELOCITY_PENALTY_SCALE, 0, 100);
   scorer.lastScore = Number(score.toFixed(2));
   return scorer.lastScore;
 }

@@ -1,22 +1,60 @@
-const SOCKET_IO_CDN_URL = "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
-
 let socketIoLoader = null;
+let socketIoScriptUrl = "";
 
-async function loadSocketIoClient() {
+function normalizeBaseUrl(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+function loadSocketIoClient(serverUrl) {
   if (window.io) {
-    return { io: window.io };
+    return Promise.resolve(window.io);
   }
 
-  if (!socketIoLoader) {
-    socketIoLoader = import(SOCKET_IO_CDN_URL);
+  const scriptUrl = `${normalizeBaseUrl(serverUrl)}/socket.io/socket.io.js`;
+
+  if (socketIoLoader && socketIoScriptUrl === scriptUrl) {
+    return socketIoLoader;
   }
+
+  socketIoScriptUrl = scriptUrl;
+  socketIoLoader = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src="${scriptUrl}"]`);
+
+    if (existingScript) {
+      if (window.io) {
+        resolve(window.io);
+        return;
+      }
+
+      existingScript.addEventListener("load", () => resolve(window.io), { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => reject(new Error(`Failed to load Socket.io client from ${scriptUrl}`)),
+        { once: true }
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = scriptUrl;
+    script.async = true;
+    script.onload = () => {
+      if (window.io) {
+        resolve(window.io);
+        return;
+      }
+
+      reject(new Error("Socket.io client did not initialize"));
+    };
+    script.onerror = () => reject(new Error(`Failed to load Socket.io client from ${scriptUrl}`));
+    document.head.appendChild(script);
+  });
 
   return socketIoLoader;
 }
 
 export async function createSocketClient({ serverUrl, groupId, userId }) {
-  const socketModule = await loadSocketIoClient();
-  const io = socketModule.io || window.io;
+  const io = await loadSocketIoClient(serverUrl);
   if (!io) {
     throw new Error("socket.io-client could not be loaded");
   }
