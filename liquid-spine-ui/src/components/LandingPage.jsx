@@ -1,9 +1,10 @@
 import React from 'react';
+import fitnessDuoCyan from '../assets/fitness-duo-cyan.png';
 
 const LANDING_FEATURES = [
-  'Realtime posture scoring',
-  'Competitive leaderboard energy',
-  'Coach-ready recovery replay',
+  'AI form coaching',
+  'Live score loops',
+  'Retention-first social play',
 ];
 
 const LandingPage = ({ onStart }) => {
@@ -15,16 +16,11 @@ const LandingPage = ({ onStart }) => {
 
       <div className="landing-shell">
         <div className="landing-copy-block">
-          <p className="session-kicker">Performance Platform</p>
-          <span className="landing-chip">Interactive Fitness Experience</span>
-          <h1 className="landing-title">
-            Movement coaching
-            <br />
-            with game-level energy.
-          </h1>
+          <span className="landing-chip">AI-Powered Fitness Game</span>
+          <h1 className="landing-title landing-title-compact">Train. Compete. Conquer.</h1>
           <p className="landing-copy">
-            FormFlow turns posture feedback, session recovery, and competition into a
-            product experience that feels premium from the first screen.
+            Want to turn every workout into a game you can&apos;t stop playing? FormFlow is
+            for you. Powered by AI coaching, real-time scoring, and competitive gameplay.
           </p>
 
           <div className="landing-feature-row">
@@ -37,16 +33,16 @@ const LandingPage = ({ onStart }) => {
 
           <div className="landing-live-strip">
             <div className="landing-live-chip">
-              <span>Mode</span>
-              <strong>Live Training</strong>
+              <span>AI Engine</span>
+              <strong>Realtime Coaching</strong>
             </div>
             <div className="landing-live-chip">
-              <span>Energy</span>
-              <strong>Gym Arena</strong>
+              <span>Hook</span>
+              <strong>Live Leaderboards</strong>
             </div>
             <div className="landing-live-chip">
-              <span>Output</span>
-              <strong>Coach + Player</strong>
+              <span>Replay</span>
+              <strong>Post-Workout Insights</strong>
             </div>
           </div>
 
@@ -71,59 +67,72 @@ const LandingPage = ({ onStart }) => {
         <div className="glass-panel landing-showcase">
           <div className="landing-gym-stage" aria-hidden="true">
             <div className="landing-gym-backdrop" />
-            <div className="landing-gym-platform" />
-            <div className="landing-athlete-shadow" />
-
-            <div className="landing-barbell">
-              <span className="landing-plate landing-plate-left-outer" />
-              <span className="landing-plate landing-plate-left-inner" />
-              <span className="landing-bar" />
-              <span className="landing-plate landing-plate-right-inner" />
-              <span className="landing-plate landing-plate-right-outer" />
-            </div>
-
-            <div className="landing-athlete">
-              <span className="landing-athlete-head" />
-              <span className="landing-athlete-torso" />
-              <span className="landing-athlete-arm landing-athlete-arm-left" />
-              <span className="landing-athlete-arm landing-athlete-arm-right" />
-              <span className="landing-athlete-leg landing-athlete-leg-left" />
-              <span className="landing-athlete-leg landing-athlete-leg-right" />
-            </div>
-
-            <div className="landing-gym-pulse landing-gym-pulse-1" />
-            <div className="landing-gym-pulse landing-gym-pulse-2" />
-            <div className="landing-gym-pulse landing-gym-pulse-3" />
-
-            <div className="landing-tracker-card landing-tracker-card-top">
-              <span>Form Sync</span>
-              <strong>98%</strong>
-            </div>
-            <div className="landing-tracker-card landing-tracker-card-bottom">
-              <span>Rep Velocity</span>
-              <strong>LIVE</strong>
+            <div className="landing-reference-card">
+              <img
+                src={fitnessDuoCyan}
+                alt="Fitness duo in cyan and black"
+                className="landing-reference-image landing-reference-image-base"
+              />
+              <img
+                src={fitnessDuoCyan}
+                alt=""
+                aria-hidden="true"
+                className="landing-reference-image landing-reference-image-glow"
+              />
+              <div className="landing-reference-spotlight landing-reference-spotlight-left" />
+              <div className="landing-reference-spotlight landing-reference-spotlight-right" />
+              <div className="landing-reference-beam" />
+              <div className="landing-reference-shimmer" />
             </div>
           </div>
 
           <div className="landing-showcase-top">
-            <span className="landing-metric-label">Live Demo Value</span>
             <strong className="landing-metric-value">Realtime coaching + social motivation</strong>
           </div>
 
-          <div className="landing-motion-stage" aria-hidden="true">
-            <div className="landing-motion-ring landing-motion-ring-outer" />
-            <div className="landing-motion-ring landing-motion-ring-inner" />
-            <div className="landing-motion-orbit" />
-            <div className="landing-motion-core">
-              <span className="landing-motion-core-label">Motion</span>
+          <div className="landing-coach-stage" aria-hidden="true">
+            <div className="landing-coach-floor" />
+            <div className="landing-trophy-badge">
+              <span className="landing-trophy-icon">🏆</span>
+              <span className="landing-trophy-copy">Boss Reward</span>
             </div>
-            <div className="landing-scan-line" />
-            <div className="landing-wave-trail">
-              <span className="landing-wave-node landing-wave-node-1" />
-              <span className="landing-wave-node landing-wave-node-2" />
-              <span className="landing-wave-node landing-wave-node-3" />
-              <span className="landing-wave-node landing-wave-node-4" />
-              <span className="landing-wave-node landing-wave-node-5" />
+            <div className="landing-coach-ui-card landing-coach-ui-card-left">
+              <span>Mission</span>
+              <strong>Beat the daily boss rep challenge</strong>
+            </div>
+            <div className="landing-equipment-lane">
+              <div className="landing-equipment-track" />
+              <div className="landing-equipment-track landing-equipment-track-secondary" />
+              <div className="landing-equipment landing-equipment-dumbbell-1">
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-left-outer" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-left-inner" />
+                <span className="landing-dumbbell-handle" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-right-inner" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-right-outer" />
+              </div>
+              <div className="landing-equipment landing-equipment-dumbbell-2">
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-left-outer" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-left-inner" />
+                <span className="landing-dumbbell-handle" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-right-inner" />
+                <span className="landing-dumbbell-plate landing-dumbbell-plate-right-outer" />
+              </div>
+              <div className="landing-equipment landing-equipment-barbell-mini">
+                <span className="landing-barbell-mini-plate landing-barbell-mini-plate-left" />
+                <span className="landing-barbell-mini-bar" />
+                <span className="landing-barbell-mini-plate landing-barbell-mini-plate-right" />
+              </div>
+              <div className="landing-equipment landing-equipment-plate">
+                <span className="landing-plate-core" />
+              </div>
+              <div className="landing-equipment landing-equipment-kettlebell">
+                <span className="landing-kettlebell-handle" />
+              </div>
+              <div className="landing-equipment landing-equipment-bench">
+                <span className="landing-bench-pad" />
+                <span className="landing-bench-leg landing-bench-leg-left" />
+                <span className="landing-bench-leg landing-bench-leg-right" />
+              </div>
             </div>
           </div>
 
@@ -146,12 +155,19 @@ const LandingPage = ({ onStart }) => {
             </div>
           </div>
 
-          <div className="landing-wave-card">
-            <div className="landing-wave-bar landing-wave-bar-short" />
-            <div className="landing-wave-bar landing-wave-bar-medium" />
-            <div className="landing-wave-bar landing-wave-bar-tall" />
-            <div className="landing-wave-bar landing-wave-bar-medium" />
-            <div className="landing-wave-bar landing-wave-bar-short" />
+          <div className="landing-reward-lane">
+            <div className="landing-reward-pill">
+              <span>Reward</span>
+              <strong>Unlock Pro Arena skin</strong>
+            </div>
+            <div className="landing-reward-pill">
+              <span>Boost</span>
+              <strong>+25 Hydration Credits</strong>
+            </div>
+            <div className="landing-reward-pill">
+              <span>Mode</span>
+              <strong>Versus Friends</strong>
+            </div>
           </div>
         </div>
       </div>

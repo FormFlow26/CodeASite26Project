@@ -21,8 +21,8 @@ const OnboardingModal = ({
           <p className="session-kicker">Home Base</p>
           <h2 className="home-title">Welcome Back to FormFlow</h2>
           <p className="home-copy">
-            This is now a real home page, so you can jump back here anytime from
-            the navigation and still land here again after a refresh.
+            Jump back in anytime to keep your training, score, and social
+            momentum moving.
           </p>
 
           <div className="level-switch">
@@ -63,7 +63,6 @@ const OnboardingModal = ({
             ← Back
           </button>
         )}
-        <p className="session-kicker">Welcome Sequence</p>
         <h2 className="home-title">Welcome to FormFlow</h2>
         <p className="home-copy onboarding-copy">
           To calibrate your water limits and skill tree, select your starting
