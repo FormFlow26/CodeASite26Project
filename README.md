@@ -43,6 +43,38 @@ Optional frontend environment variables:
 - `VITE_USER_ID`: Optional user ID to load a specific profile in the UI.
 - `VITE_GROUP_ID`: Optional realtime group ID for scoped socket events.
 
+## Deployment Setup
+
+MongoDB Atlas is only the database. The Node/Express/Socket.io backend still needs its own public host.
+
+### Backend deployment
+
+The backend can be deployed to Render using [render.yaml](/Users/madhav/Downloads/CLASSES/hackathon/CodeASite26Project/render.yaml).
+
+Backend environment variables:
+
+```env
+MONGODB_URI=your-atlas-uri
+CLIENT_ORIGIN=https://your-vercel-site.vercel.app
+PORT=4000
+```
+
+Notes:
+
+- `CLIENT_ORIGIN` can be a comma-separated list if you want to allow local dev and Vercel at the same time.
+- The health check endpoint is `GET /health`.
+
+### Frontend deployment
+
+The Vite frontend should be deployed from [liquid-spine-ui](/Users/madhav/Downloads/CLASSES/hackathon/CodeASite26Project/liquid-spine-ui) and configured with:
+
+```env
+VITE_API_BASE_URL=https://formflow-api.onrender.com/api
+VITE_SOCKET_URL=https://formflow-api.onrender.com
+```
+
+An example file is included at [liquid-spine-ui/.env.example](/Users/madhav/Downloads/CLASSES/hackathon/CodeASite26Project/liquid-spine-ui/.env.example).
+
 ## Key Features
 
 - Live hydration leaderboard backed by MongoDB.

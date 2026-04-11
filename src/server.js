@@ -45,7 +45,11 @@ app.use(express.json());
 app.set("io", io);
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    service: "formflow-api",
+    allowedOrigins: clientOrigins,
+  });
 });
 
 app.use("/api/leaderboard", leaderboardRoutes);

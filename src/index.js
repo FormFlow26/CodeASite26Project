@@ -13,7 +13,9 @@ const CONFIG = {
   exerciseType: "squat",
   targetSets: 4,
   repsPerSet: 8,
-  serverUrl: "http://localhost:3001"
+  serverUrl:
+    (typeof window !== "undefined" && window.__FORMFLOW_SERVER_URL__) ||
+    "http://localhost:4000"
 };
 
 function ensureVideoElement() {
