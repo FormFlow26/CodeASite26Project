@@ -12,7 +12,7 @@ async function parseResponse(response) {
 
   try {
     return JSON.parse(text);
-  } catch (_error) {
+  } catch {
     return { raw: text };
   }
 }

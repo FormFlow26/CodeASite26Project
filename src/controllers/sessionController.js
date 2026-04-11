@@ -50,8 +50,6 @@ async function createSession(req, res) {
     }
 
     const session = await Session.create(sessionPayload);
-    const updatedUser = await awardSessionCompletionCredits(session.userId);
-    const leaderboardEntry = await updateLeaderboardFromSession(session, updatedUser);
     const io = req.app.get("io");
     const wipeoutEvent = buildWipeoutPayload(session);
 
@@ -66,8 +64,6 @@ async function createSession(req, res) {
     return res.status(201).json({
       _id: session._id,
       ...session.toObject(),
-      user: updatedUser,
-      leaderboard: leaderboardEntry,
       wipeoutEvent: wipeoutEvent.totalKinks > 0 ? wipeoutEvent : null,
     });
   } catch (error) {
@@ -133,6 +129,8 @@ async function completeSession(req, res) {
 
     session.completedAt = new Date();
     await session.save();
+    const updatedUser = await awardSessionCompletionCredits(session.userId);
+    const leaderboardEntry = await updateLeaderboardFromSession(session, updatedUser);
 
     const io = req.app.get("io");
 
@@ -146,7 +144,11 @@ async function completeSession(req, res) {
       io.emit("WIPEOUT_EVENT", wipeoutPayload);
     }
 
-    return res.json(session.toObject());
+    return res.json({
+      ...session.toObject(),
+      user: updatedUser,
+      leaderboard: leaderboardEntry,
+    });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }

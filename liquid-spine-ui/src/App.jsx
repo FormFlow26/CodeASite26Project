@@ -466,6 +466,14 @@ function App() {
               replayStatus={replayStatus}
               replayError={replayError}
               isWipeoutActive={isWipeoutActive}
+              currentUserId={authenticatedUser?._id || playerProfile?._id || runtimeConfig.userId}
+              currentGroupId={
+                (playerProfile?.groupId && typeof playerProfile.groupId === 'object'
+                  ? playerProfile.groupId._id
+                  : playerProfile?.groupId)
+                || authenticatedUser?.groupId
+                || runtimeConfig.groupId
+              }
             />
           </div>
         )}

@@ -28,6 +28,8 @@ const GymTab = ({
   replayStatus,
   replayError,
   isWipeoutActive,
+  currentUserId,
+  currentGroupId,
 }) => {
   const [activeMuscle, setActiveMuscle] = useState('Quads');
   const [cameraStatus, setCameraStatus] = useState('idle');
@@ -38,7 +40,9 @@ const GymTab = ({
   const formflowRef = useRef(null);
 
   const { userId, groupId, socketUrl } = getRuntimeConfig();
-  const hasTracking = Boolean(userId && groupId);
+  const resolvedUserId = currentUserId || userId;
+  const resolvedGroupId = currentGroupId || groupId;
+  const hasTracking = Boolean(resolvedUserId && resolvedGroupId);
 
   const formStatus = 'perfect';
   const isCameraReady = cameraStatus === 'ready';
@@ -86,8 +90,8 @@ const GymTab = ({
 
       formflowRef.current = await startFormFlow({
         videoElement: videoRef.current,
-        userId,
-        groupId,
+        userId: resolvedUserId,
+        groupId: resolvedGroupId,
         exerciseType,
         serverUrl: socketUrl,
         onRepComplete: ({ kinkDetected, fluidityScore }) => {
@@ -260,7 +264,7 @@ const GymTab = ({
 
         {!hasTracking && (
           <div className="status-banner" data-tone="warning">
-            Set VITE_USER_ID and VITE_GROUP_ID in liquid-spine-ui/.env to enable live tracking
+            Log in or set VITE_USER_ID and VITE_GROUP_ID in liquid-spine-ui/.env to enable live tracking
           </div>
         )}
 
