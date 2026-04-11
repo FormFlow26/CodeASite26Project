@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReplayChart from './ReplayChart';
+import { startFormFlow } from '../formflow/startFormFlow.js';
+import { getRuntimeConfig } from '../lib/formflowApi';
 
 const MUSCLE_PRESETS = {
   Quads: { fill: 30, goal: '4 Sets of 12', tips: 'Keep heels planted.' },
@@ -7,10 +9,20 @@ const MUSCLE_PRESETS = {
   Back: { fill: 0, goal: '5 Sets of 8', tips: 'Pull with your elbows.' },
 };
 
+const MUSCLE_TO_EXERCISE = {
+  Quads: 'squat',
+  Chest: 'bench',
+  Back: 'deadlift',
+};
+
 const INITIAL_FEEDBACK = {
   tone: 'info',
   text: 'Choose a focus area and start the form check when you are ready.',
 };
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
 const GymTab = ({
   onSuccessfulRep,
@@ -20,19 +32,29 @@ const GymTab = ({
   replayStatus,
   replayError,
   isWipeoutActive,
+  currentUserId,
+  currentGroupId,
 }) => {
   const [activeMuscle, setActiveMuscle] = useState('Quads');
   const [cameraStatus, setCameraStatus] = useState('idle');
   const [cameraError, setCameraError] = useState('');
   const [feedback, setFeedback] = useState(INITIAL_FEEDBACK);
-  const [muscleData, setMuscleData] = useState(MUSCLE_PRESETS);
+  const [muscleData] = useState(MUSCLE_PRESETS);
+  const [lastRepFluidity, setLastRepFluidity] = useState(null);
+  const [lastRepFlags, setLastRepFlags] = useState([]);
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const formflowRef = useRef(null);
 
-  const formStatus = 'perfect';
+  const { userId, groupId, socketUrl } = getRuntimeConfig();
+  const resolvedUserId = currentUserId || userId;
+  const resolvedGroupId = currentGroupId || groupId;
+  const hasTracking = Boolean(resolvedUserId);
   const isCameraReady = cameraStatus === 'ready';
   const isRequestingCamera = cameraStatus === 'requesting';
   const activeMuscleData = muscleData[activeMuscle];
+  const displayedFill = isCameraReady
+    ? clamp(Math.round(lastRepFluidity ?? activeMuscleData.fill), 0, 100)
+    : activeMuscleData.fill;
   const liveKinkCount =
     wipeoutEvent?.totalKinks ?? wipeoutEvent?.kinkSnapshots?.length ?? 0;
   const liveWipeoutMessage = wipeoutEvent
@@ -40,37 +62,19 @@ const GymTab = ({
     : null;
 
   const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
+    formflowRef.current?.stop();
+    formflowRef.current = null;
     setCameraStatus('idle');
+    setLastRepFluidity(null);
+    setLastRepFlags([]);
+    setFeedback(INITIAL_FEEDBACK);
   };
 
   useEffect(() => {
-    const currentVideo = videoRef.current;
-
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-
-      if (currentVideo) {
-        currentVideo.srcObject = null;
-      }
+      formflowRef.current?.stop();
     };
   }, []);
-
-  useEffect(() => {
-    if (isCameraReady && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-    }
-  }, [isCameraReady]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -84,67 +88,71 @@ const GymTab = ({
     }
 
     setCameraError('');
+    setLastRepFluidity(null);
+    setLastRepFlags([]);
     setFeedback({
       tone: 'info',
-      text: 'Requesting camera access. Approve the prompt to begin form tracking.',
+      text: 'Loading MediaPipe and requesting camera access...',
     });
     setCameraStatus('requesting');
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false,
+      const exerciseType = MUSCLE_TO_EXERCISE[activeMuscle] || 'squat';
+
+      formflowRef.current = await startFormFlow({
+        videoElement: videoRef.current,
+        userId: resolvedUserId,
+        groupId: resolvedGroupId,
+        exerciseType,
+        serverUrl: socketUrl,
+        onSystemError: ({ message }) => {
+          setFeedback({
+            tone: 'warning',
+            text: message || 'Live sync is unavailable, but local camera tracking is still active.',
+          });
+        },
+        onRepComplete: ({ kinkDetected, fluidityScore, flags }) => {
+          setLastRepFluidity(fluidityScore);
+          setLastRepFlags(flags || []);
+
+          if (kinkDetected) {
+            onRejectedRep?.();
+            setFeedback({
+              tone: 'warning',
+              text: `Rep flagged for review. Average fluidity ${Math.round(fluidityScore ?? 0)}%. Adjust your posture and try another rep.`,
+            });
+          } else {
+            onSuccessfulRep?.(activeMuscle);
+            setFeedback({
+              tone: 'success',
+              text: `Clean rep captured. Average fluidity ${Math.round(fluidityScore ?? 0)}%.`,
+            });
+          }
+        },
       });
 
-      streamRef.current = stream;
       setCameraStatus('ready');
       setFeedback({
-        tone: 'success',
-        text: 'Camera connected. Stay centered and sync a clean rep to fill the tank.',
+        tone: 'info',
+        text: 'MediaPipe live. Complete one full rep to score your form.',
       });
     } catch (error) {
+      console.error('Failed to start FormFlow camera', error);
       setCameraStatus('error');
+      formflowRef.current = null;
       setCameraError(
         error?.name === 'NotAllowedError'
           ? 'Camera permission was denied.'
-          : 'Camera could not be started right now.',
+          : error?.message || 'Camera could not be started right now.',
       );
       setFeedback({
         tone: 'warning',
         text:
           error?.name === 'NotAllowedError'
             ? 'Permission was denied. You can retry when you are ready.'
-            : 'There was a problem starting the camera. Try again in a moment.',
+            : error?.message || 'There was a problem starting the camera. Try again in a moment.',
       });
     }
-  };
-
-  const handleRepSync = () => {
-    if (!isCameraReady) {
-      return;
-    }
-
-    if (formStatus === 'perfect') {
-      setMuscleData((currentData) => ({
-        ...currentData,
-        [activeMuscle]: {
-          ...currentData[activeMuscle],
-          fill: Math.min(currentData[activeMuscle].fill + 15, 100),
-        },
-      }));
-      onSuccessfulRep?.(activeMuscle);
-      setFeedback({
-        tone: 'success',
-        text: `${activeMuscle} synced cleanly. Tank filled by 15%.`,
-      });
-      return;
-    }
-
-    onRejectedRep?.();
-    setFeedback({
-      tone: 'warning',
-      text: 'Rep rejected. Reset your posture, brace, and try the movement again.',
-    });
   };
 
   return (
@@ -193,41 +201,28 @@ const GymTab = ({
           >
             <div
               className="water-fill"
-              style={{ height: `${activeMuscleData.fill}%` }}
+              style={{ height: `${displayedFill}%` }}
             />
-            <div className="water-level-label">{activeMuscleData.fill}%</div>
+            <div className="water-level-label">{displayedFill}%</div>
           </div>
 
-          {isCameraReady && (
-            <div className="camera-shell">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: '160px',
-                  height: '220px',
-                  objectFit: 'cover',
-                  borderRadius: '15px',
-                  border: `4px solid ${
-                    formStatus === 'perfect'
-                      ? 'var(--moana-cyan)'
-                      : 'var(--moana-coral)'
-                  }`,
-                  boxShadow:
-                    formStatus === 'bad'
-                      ? '0 0 20px var(--moana-coral)'
-                      : '0 0 20px rgba(0, 242, 254, 0.15)',
-                  transition: 'all 0.3s ease',
-                }}
-              />
-
-              {formStatus === 'bad' && (
-                <div className="camera-banner">Alignment error detected</div>
-              )}
-            </div>
-          )}
+          <div className="camera-shell" style={{ display: isCameraReady ? 'block' : 'none' }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: '160px',
+                height: '220px',
+                objectFit: 'cover',
+                borderRadius: '15px',
+                border: '4px solid var(--moana-cyan)',
+                boxShadow: '0 0 20px rgba(0, 242, 254, 0.15)',
+                transition: 'all 0.3s ease',
+              }}
+            />
+          </div>
         </div>
 
         {liveWipeoutMessage && (
@@ -242,19 +237,33 @@ const GymTab = ({
           </div>
         )}
 
+        {!hasTracking && (
+          <div className="status-banner" data-tone="warning">
+            Log in or set VITE_USER_ID in liquid-spine-ui/.env to enable live tracking
+          </div>
+        )}
+
         <div className="status-banner" data-tone={feedback.tone}>
           {feedback.text}
         </div>
 
+        {isCameraReady && lastRepFluidity !== null && (
+          <div className="status-banner" data-tone="info">
+            Last rep quality: {Math.round(lastRepFluidity)}%
+          </div>
+        )}
+
+        {isCameraReady && lastRepFlags.length > 0 && (
+          <div className="status-banner" data-tone="warning">
+            Last rep flags: {lastRepFlags.join(', ')}
+          </div>
+        )}
+
         {isCameraReady ? (
           <div className="action-stack">
-            <button
-              type="button"
-              onClick={handleRepSync}
-              className={`primary-button ${formStatus === 'bad' ? 'is-disabled' : ''}`}
-            >
-              {formStatus === 'perfect' ? 'SYNC PERFECT REP' : 'REP REJECTED'}
-            </button>
+            <div className="status-banner" data-tone="info">
+              Automatic rep detection is active. Move through the exercise and FormFlow will score reps as they complete.
+            </div>
 
             <button type="button" onClick={stopCamera} className="ghost-button">
               Stop camera
@@ -265,7 +274,7 @@ const GymTab = ({
             type="button"
             onClick={startCamera}
             className="secondary-button"
-            disabled={isRequestingCamera}
+            disabled={isRequestingCamera || !hasTracking}
           >
             {isRequestingCamera ? 'REQUESTING CAMERA...' : 'START FORM CHECK'}
           </button>

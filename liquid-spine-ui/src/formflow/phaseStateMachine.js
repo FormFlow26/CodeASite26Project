@@ -57,8 +57,7 @@ function getTrimmedAverage(values) {
   }
 
   const sortedValues = [...validValues].sort((left, right) => left - right);
-  const trimCount =
-    sortedValues.length >= 8 ? Math.floor(sortedValues.length * 0.15) : sortedValues.length >= 5 ? 1 : 0;
+  const trimCount = sortedValues.length >= 8 ? Math.floor(sortedValues.length * 0.15) : sortedValues.length >= 5 ? 1 : 0;
   const trimmedValues =
     trimCount > 0 && trimCount * 2 < sortedValues.length
       ? sortedValues.slice(trimCount, sortedValues.length - trimCount)

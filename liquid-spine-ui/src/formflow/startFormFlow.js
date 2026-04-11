@@ -1,15 +1,15 @@
-import { createPoseEngine } from "./mediapipe/poseEngine.js";
-import { createSessionManager } from "./mediapipe/sessionManager.js";
-import { createSocketClient } from "./socket/socketClient.js";
-import { getLandmarkAngles } from "./mediapipe/angleUtils.js";
-import { initFluidityScorer, computeFluidityScore } from "./mediapipe/fluidityScorer.js";
-import { detectKinks } from "./mediapipe/kinkDetector.js";
-import { createPhaseStateMachine } from "./mediapipe/phaseStateMachine.js";
-import { createSnapshotBuffer } from "./mediapipe/snapshotBuffer.js";
+import { createPoseEngine } from "./poseEngine.js";
+import { createSessionManager } from "./sessionManager.js";
+import { createSocketClient } from "./socketClient.js";
+import { getLandmarkAngles } from "./angleUtils.js";
+import { initFluidityScorer, computeFluidityScore } from "./fluidityScorer.js";
+import { detectKinks } from "./kinkDetector.js";
+import { createPhaseStateMachine } from "./phaseStateMachine.js";
+import { createSnapshotBuffer } from "./snapshotBuffer.js";
 
 const CONFIG = {
-  userId: "user_abc123",
-  groupId: "group_xyz",
+  userId: "",
+  groupId: "",
   exerciseType: "squat",
   targetSets: 4,
   repsPerSet: 8,
@@ -40,25 +40,64 @@ function ensureVideoElement() {
   return videoElement;
 }
 
+function createOfflineSocketClient({ userId, groupId }) {
+  return {
+    socket: null,
+    userId,
+    groupId,
+    emit() {},
+    on() {},
+    disconnect() {}
+  };
+}
+
 export async function startFormFlow(runtimeConfig = {}) {
   const config = { ...CONFIG, ...runtimeConfig };
-  const videoElement = ensureVideoElement();
-
-  const socketClient = await createSocketClient({
-    serverUrl: config.serverUrl,
-    groupId: config.groupId,
-    userId: config.userId
-  });
-
-  const sessionManager = await createSessionManager({
+  // Use the videoElement passed by the caller (e.g. GymTab's videoRef) or fall back to DOM lookup
+  const videoElement = runtimeConfig.videoElement || ensureVideoElement();
+  let socketClient = createOfflineSocketClient({
     userId: config.userId,
-    groupId: config.groupId,
-    exerciseType: config.exerciseType,
-    targetSets: config.targetSets,
-    repsPerSet: config.repsPerSet,
-    serverUrl: config.serverUrl,
-    socketClient
+    groupId: config.groupId
   });
+  let sessionManager = null;
+  let sessionInitErrorMessage = "";
+
+  function reportSystemError(context, error) {
+    console.error(`FormFlow ${context} error`, error);
+
+    if (typeof config.onSystemError === "function") {
+      config.onSystemError({
+        context,
+        message: error?.message || "Unexpected FormFlow error"
+      });
+    }
+  }
+
+  const sessionManagerReady = (async () => {
+    try {
+      socketClient = await createSocketClient({
+        serverUrl: config.serverUrl,
+        groupId: config.groupId,
+        userId: config.userId
+      });
+
+      sessionManager = await createSessionManager({
+        userId: config.userId,
+        groupId: config.groupId,
+        exerciseType: config.exerciseType,
+        targetSets: config.targetSets,
+        repsPerSet: config.repsPerSet,
+        serverUrl: config.serverUrl,
+        socketClient
+      });
+
+      return sessionManager;
+    } catch (error) {
+      sessionInitErrorMessage = error?.message || "Live sync is unavailable right now.";
+      reportSystemError("session-init", error);
+      return null;
+    }
+  })();
 
   const snapshotBuffer = createSnapshotBuffer();
   const fluidityScorer = initFluidityScorer();
@@ -74,20 +113,39 @@ export async function startFormFlow(runtimeConfig = {}) {
     }
 
     try {
+      const activeSessionManager = sessionManager || (await sessionManagerReady);
+
+      if (!activeSessionManager) {
+        throw new Error(
+          sessionInitErrorMessage || "Live sync is unavailable right now. Camera tracking is still running."
+        );
+      }
+
       const resolvedFlags = repMeta.flags ?? repSummary.allFlags;
       const resolvedKinkDetected =
         typeof repMeta.kinkDetected === "boolean"
           ? repMeta.kinkDetected
           : resolvedFlags.length > 0 || repSummary.kinkDetected;
+      const resolvedFluidityScore = repMeta.avgFluidityScore ?? repSummary.avgFluidity;
 
-      await sessionManager.onRepComplete({
+      await activeSessionManager.onRepComplete({
         ...repMeta,
         ...repSummary,
         snapshots,
         kinkDetected: resolvedKinkDetected
       });
+
+      // Notify the caller (e.g. GymTab) that a rep completed
+      if (typeof config.onRepComplete === "function") {
+        config.onRepComplete({
+          ...repMeta,
+          kinkDetected: resolvedKinkDetected,
+          fluidityScore: resolvedFluidityScore,
+          flags: resolvedFlags
+        });
+      }
     } catch (error) {
-      console.error("Failed to complete rep", error);
+      reportSystemError("rep-complete", error);
       socketClient.emit("session-error", {
         context: "rep-complete",
         message: error.message
@@ -112,6 +170,16 @@ export async function startFormFlow(runtimeConfig = {}) {
         angles,
         flags
       };
+
+      if (typeof config.onAnalysis === "function") {
+        config.onAnalysis({
+          timestamp,
+          fluidityScore,
+          kinkDetected: snapshot.kinkDetected,
+          flags,
+          angles
+        });
+      }
 
       snapshotBuffer.push(snapshot);
       phaseStateMachine.update(angles, timestamp, snapshot);
