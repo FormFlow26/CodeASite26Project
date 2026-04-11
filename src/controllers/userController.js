@@ -17,6 +17,20 @@ async function getUserById(req, res) {
   }
 }
 
+async function getUserById(req, res) {
+  try {
+    const user = await User.findById(req.params.userId).lean();
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
 async function addHydrationCredits(req, res) {
   try {
     const { userId } = req.params;

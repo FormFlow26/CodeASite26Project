@@ -349,7 +349,7 @@ function App() {
       pushCurrentView();
       setHasEnteredApp(true);
       setShowLoginGate(true);
-      setActiveTab(hasOnboarded ? 'home' : 'home');
+      setActiveTab('home');
       setPlayerProfile(nextUser);
       setProfileError('');
       setAuthMode('login');
