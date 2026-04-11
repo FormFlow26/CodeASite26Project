@@ -1,6 +1,7 @@
 const Session = require("../models/Session");
 const { awardSessionCompletionCredits } = require("./userController");
 const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
+const { updateLeaderboardFromSession } = require("../services/leaderboardService");
 
 async function getSessionById(req, res) {
   try {
@@ -36,6 +37,7 @@ async function createSession(req, res) {
   try {
     const session = await Session.create(req.body);
     const updatedUser = await awardSessionCompletionCredits(session.userId);
+    const leaderboardEntry = await updateLeaderboardFromSession(session, updatedUser);
     const io = req.app.get("io");
     const wipeoutEvent = buildWipeoutPayload(session);
 
@@ -50,6 +52,7 @@ async function createSession(req, res) {
     return res.status(201).json({
       session,
       user: updatedUser,
+      leaderboard: leaderboardEntry,
       wipeoutEvent: wipeoutEvent.totalKinks > 0 ? wipeoutEvent : null,
     });
   } catch (error) {
