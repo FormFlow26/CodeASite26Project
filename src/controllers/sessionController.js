@@ -1,6 +1,14 @@
 const Session = require("../models/Session");
 const { awardSessionCompletionCredits } = require("./userController");
-const buildWipeoutPayload = require("../utils/buildWipeoutPayload");
+
+function serializeSnapshot(snapshot) {
+  return {
+    timestamp: snapshot.timestamp,
+    fluidityScore: snapshot.fluidityScore,
+    kinkDetected: snapshot.kinkDetected,
+    angles: snapshot.angles || null,
+  };
+}
 
 async function getSessionById(req, res) {
   try {
@@ -21,36 +29,108 @@ async function getSessionById(req, res) {
       user: session.userId,
       group: session.groupId,
       summary: session.sessionSummary,
-      poseSnapshots: (session.poseSnapshots || []).map((snapshot) => ({
-        timestamp: snapshot.timestamp,
-        fluidityScore: snapshot.fluidityScore,
-        kinkDetected: snapshot.kinkDetected,
-      })),
+      totalScore: session.totalScore,
+      poseSnapshots: (session.poseSnapshots || []).map(serializeSnapshot),
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
 }
 
+// Wipeout broadcasts are owned by changeStreamService, which now handles
+// inserts as well as updates. createSession only persists the session and
+// awards credits for joining a session.
 async function createSession(req, res) {
   try {
     const session = await Session.create(req.body);
     const updatedUser = await awardSessionCompletionCredits(session.userId);
-    const io = req.app.get("io");
-    const wipeoutEvent = buildWipeoutPayload(session);
-
-    if (wipeoutEvent.totalKinks > 0 && io) {
-      if (session.groupId) {
-        io.to(`group:${session.groupId}`).emit("WIPEOUT_EVENT", wipeoutEvent);
-      }
-
-      io.emit("WIPEOUT_EVENT", wipeoutEvent);
-    }
 
     return res.status(201).json({
       session,
       user: updatedUser,
-      wipeoutEvent: wipeoutEvent.totalKinks > 0 ? wipeoutEvent : null,
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function appendRep(req, res) {
+  try {
+    const { fluidityScore, angles, flags } = req.body || {};
+
+    if (typeof fluidityScore !== "number" || Number.isNaN(fluidityScore)) {
+      return res.status(400).json({ error: "fluidityScore must be a number" });
+    }
+
+    const session = await Session.findById(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    const flagList = Array.isArray(flags) ? flags : [];
+    session.poseSnapshots.push({
+      timestamp: new Date(),
+      fluidityScore,
+      kinkDetected: flagList.length > 0,
+      angles: angles
+        ? {
+            hipAngle: angles.hipAngle,
+            kneeAngle: angles.kneeAngle,
+            lumbarFlexion: angles.lumbarFlexion,
+          }
+        : undefined,
+    });
+
+    await session.save();
+    return res.json({
+      sessionId: session._id,
+      summary: session.sessionSummary,
+      latestSnapshot: serializeSnapshot(
+        session.poseSnapshots[session.poseSnapshots.length - 1] || {}
+      ),
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function flushSet(req, res) {
+  try {
+    const session = await Session.findById(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    // Re-saving runs the pre-save hooks that recompute sessionSummary
+    // and resample poseSnapshots, which is the durable side-effect
+    // sessionManager.js relies on at set boundaries.
+    await session.save();
+    return res.json({
+      sessionId: session._id,
+      setNumber: req.body?.setNumber ?? null,
+      summary: session.sessionSummary,
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+async function completeSession(req, res) {
+  try {
+    const session = await Session.findById(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+
+    if (typeof req.body?.totalScore === "number") {
+      session.totalScore = req.body.totalScore;
+    }
+
+    await session.save();
+    return res.json({
+      sessionId: session._id,
+      totalScore: session.totalScore,
+      summary: session.sessionSummary,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
@@ -59,5 +139,8 @@ async function createSession(req, res) {
 
 module.exports = {
   getSessionById,
-  createSession
+  createSession,
+  appendRep,
+  flushSet,
+  completeSession,
 };
