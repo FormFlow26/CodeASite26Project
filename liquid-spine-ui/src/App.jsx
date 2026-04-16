@@ -154,8 +154,6 @@ function App() {
   const [replayStatus, setReplayStatus] = useState('idle');
   const [replayError, setReplayError] = useState('');
   const [isWipeoutActive, setIsWipeoutActive] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const lastEventSignatureRef = useRef('');
   const wipeoutTimerRef = useRef(null);
 
@@ -414,37 +412,19 @@ function App() {
   };
 
   const handleLogin = async ({ email, password, fullName, username, authMode: selectedAuthMode }) => {
-    setAuthError('');
-    setIsAuthSubmitting(true);
+    const response = selectedAuthMode === 'signup'
+      ? await registerUser({ email, password, displayName: fullName, username })
+      : await loginUser({ emailOrUsername: email, password });
 
-    try {
-      const response = selectedAuthMode === 'signup'
-        ? await registerUser({
-          email,
-          password,
-          displayName: fullName,
-          username,
-        })
-        : await loginUser({
-          emailOrUsername: email,
-          password,
-        });
-
-      const nextUser = normalizeStoredUser(response.user);
-      setAuthenticatedUser(nextUser);
-      pushCurrentView();
-      setHasEnteredApp(true);
-      setShowLoginGate(true);
-      setActiveTab('home');
-      setPlayerProfile(nextUser);
-      setProfileError('');
-      setAuthMode('login');
-    } catch (error) {
-      setAuthError(error.message);
-      throw error;
-    } finally {
-      setIsAuthSubmitting(false);
-    }
+    const nextUser = normalizeStoredUser(response.user);
+    setAuthenticatedUser(nextUser);
+    pushCurrentView();
+    setHasEnteredApp(true);
+    setShowLoginGate(true);
+    setActiveTab('home');
+    setPlayerProfile(nextUser);
+    setProfileError('');
+    setAuthMode('login');
   };
 
   const handleOpenAuth = (mode = 'login') => {
@@ -488,7 +468,6 @@ function App() {
         onLogin={handleLogin}
         onSwitchMode={setAuthMode}
         onBack={canGoBack ? handleBack : null}
-        isSubmitting={isAuthSubmitting}
       />,
       'mobile-scene-login',
       `login-${authMode}`,
@@ -520,14 +499,6 @@ function App() {
           <div className="main-content">
             <div className="status-banner" data-tone="warning">
               Live profile could not be loaded: {profileError}
-            </div>
-          </div>
-        )}
-
-        {authError && (
-          <div className="main-content">
-            <div className="status-banner" data-tone="warning">
-              Auth status: {authError}
             </div>
           </div>
         )}

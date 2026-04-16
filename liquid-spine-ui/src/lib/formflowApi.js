@@ -1,5 +1,5 @@
-const DEFAULT_API_BASE_URL = 'http://localhost:4000/api';
-const DEFAULT_SOCKET_URL = 'http://localhost:4000';
+const DEFAULT_API_BASE_URL = 'https://formflow-api.onrender.com/api';
+const DEFAULT_SOCKET_URL = 'https://formflow-api.onrender.com';
 
 let socketScriptPromise = null;
 let audioContext = null;
@@ -9,23 +9,38 @@ function normalizeBaseUrl(url) {
 }
 
 function getErrorMessage(response, body) {
-  if (body?.error) {
-    return body.error;
-  }
-
-  return `Request failed with status ${response.status}`;
+  if (body?.error) return body.error;
+  if (body?.message) return body.message;
+  return `Request failed (${response.status})`;
 }
 
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
-  const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
+async function requestJson(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(getErrorMessage(response, body));
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+
+    const text = await response.text();
+    let body = null;
+    try { body = text ? JSON.parse(text) : null; } catch { /* non-JSON response */ }
+
+    if (!response.ok) {
+      throw new Error(getErrorMessage(response, body));
+    }
+
+    return body;
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      throw new Error('The server took too long to respond. Please try again.');
+    }
+    if (err.message === 'Failed to fetch' || err.message.includes('NetworkError') || err.message.includes('fetch')) {
+      throw new Error('Could not reach the server. Check your connection and try again.');
+    }
+    throw err;
   }
-
-  return body;
 }
 
 export function getRuntimeConfig() {
