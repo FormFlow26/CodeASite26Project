@@ -1,17 +1,29 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getLeaderboard } from '../lib/formflowApi';
 
 const PROFILE_STORAGE_KEY = 'formflow-profile-private';
 const PODIUM_LABELS = ['Hydro King', 'Surge Queen', 'Wave Breaker'];
+const PODIUM_ACCENT = ['#00f2fe', '#6366f1', '#7a9bbf'];
+
+const Card = ({ children, className = '', style = {} }) => (
+  <div
+    className={`rounded-2xl p-4 ${className}`}
+    style={{
+      background: 'rgba(13, 31, 53, 0.7)',
+      border: '1px solid rgba(255, 255, 255, 0.06)',
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
 
 const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
   const [isPrivate, setIsPrivate] = useState(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-
-    const storedValue = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    return storedValue === null ? true : storedValue === 'true';
+    if (typeof window === 'undefined') return true;
+    const stored = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
   });
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardStatus, setLeaderboardStatus] = useState('loading');
@@ -29,7 +41,6 @@ const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
       try {
         setLeaderboardStatus('loading');
         const entries = await getLeaderboard();
-
         if (!isCancelled) {
           setLeaderboard(entries);
           setLeaderboardStatus('ready');
@@ -45,191 +56,266 @@ const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
 
     loadLeaderboard();
     intervalId = window.setInterval(loadLeaderboard, 12000);
-
     return () => {
       isCancelled = true;
-      if (intervalId) {
-        window.clearInterval(intervalId);
-      }
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, []);
 
   const maxFluidityScore = leaderboard.reduce(
-    (highestScore, entry) =>
-      Math.max(highestScore, Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0)),
+    (high, e) => Math.max(high, Math.round(e.maxFluidity ?? e.highestFluidityScore ?? 0)),
     1,
   );
   const podiumEntries = leaderboard.slice(0, 3);
 
-  return (
-    <div className="social-layout">
-      <div className="glass-panel split-panel">
-        <div>
-          <h4 style={{ margin: 0 }}>PROFILE TYPE</h4>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-            {isPrivate ? 'Private (Friends Only)' : 'Public'}
-          </span>
-        </div>
-        <div className="profile-summary">
-          <strong>
-            {playerProfile
-              ? `${playerProfile.hydrationCredits ?? 0} hydration credits`
-              : 'No linked profile'}
-          </strong>
-          <span>
-            {realtimeStatus === 'connected'
-              ? 'Realtime sync connected'
-              : 'Realtime sync offline'}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsPrivate((currentValue) => !currentValue)}
-          className="ghost-button compact-button"
-        >
-          {isPrivate ? 'Switch to public' : 'Make private'}
-        </button>
-      </div>
+  const isLive = realtimeStatus === 'connected';
 
-      <div className="glass-panel">
-        <div className="leaderboard-header">
+  return (
+    <div className="flex flex-col gap-4 pb-4">
+
+      {/* Profile card */}
+      <Card>
+        <div className="flex items-center justify-between">
           <div>
-            <h3 style={{ margin: 0 }}>LIVE HYDRATION LEADERBOARD</h3>
-            <p className="card-copy">
-              Rankings update from the live backend as training sessions are recorded.
-            </p>
+            <h4 className="text-sm font-bold mb-0.5" style={{ color: '#f0f6ff' }}>
+              {playerProfile ? (playerProfile.username || 'Your Profile') : 'No Profile'}
+            </h4>
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full"
+                style={{
+                  background: isLive ? 'rgba(0,242,254,0.08)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isLive ? 'rgba(0,242,254,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                  color: isLive ? '#00f2fe' : '#3d5a80',
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: isLive ? '#00f2fe' : '#3d5a80' }}
+                />
+                {isLive ? 'Live sync' : 'Offline'}
+              </span>
+              <span className="text-[10px]" style={{ color: '#3d5a80' }}>
+                {isPrivate ? 'Private' : 'Public'}
+              </span>
+            </div>
           </div>
-          <div className="leaderboard-badge">{leaderboard.length || 0} athletes</div>
+          <div className="flex items-center gap-3">
+            {playerProfile && (
+              <div className="text-right">
+                <span className="text-[10px] uppercase tracking-widest block" style={{ color: '#3d5a80' }}>Hydration</span>
+                <span className="text-lg font-bold" style={{ color: '#f0f6ff' }}>
+                  {playerProfile.hydrationCredits ?? 0}
+                </span>
+              </div>
+            )}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsPrivate((v) => !v)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#7a9bbf',
+              }}
+            >
+              {isPrivate ? 'Go Public' : 'Go Private'}
+            </motion.button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Leaderboard */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>Leaderboard</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#3d5a80' }}>Ranked by max fluidity score</p>
+          </div>
+          <span
+            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+            style={{
+              background: 'rgba(0,242,254,0.08)',
+              border: '1px solid rgba(0,242,254,0.15)',
+              color: '#00f2fe',
+            }}
+          >
+            {leaderboard.length} athletes
+          </span>
         </div>
 
         {leaderboardStatus === 'loading' && (
-          <div className="status-banner" data-tone="info">
-            Loading leaderboard...
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-14 rounded-xl animate-pulse"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              />
+            ))}
           </div>
         )}
 
         {leaderboardStatus === 'error' && (
-          <div className="status-banner" data-tone="warning">
-            Leaderboard unavailable right now: {leaderboardError}
+          <div
+            className="px-4 py-3 rounded-xl text-sm"
+            style={{ background: 'rgba(255,77,109,0.08)', border: '1px solid rgba(255,77,109,0.2)', color: '#ff4d6d' }}
+          >
+            {leaderboardError}
           </div>
         )}
 
-        {leaderboardStatus === 'ready' && (
-          leaderboard.length > 0 ? (
-            <>
-              <div className="leaderboard-podium-strip">
-                {podiumEntries.map((entry, index) => {
-                  const isCurrentUser = currentUserId
-                    ? String(entry.userId) === String(currentUserId)
-                    : false;
+        {leaderboardStatus === 'ready' && leaderboard.length === 0 && (
+          <div
+            className="px-4 py-3 rounded-xl text-sm"
+            style={{ background: 'rgba(0,242,254,0.05)', border: '1px solid rgba(0,242,254,0.1)', color: '#7a9bbf' }}
+          >
+            No leaderboard data yet.
+          </div>
+        )}
 
-                  return (
-                    <div
-                      key={`${entry.userId}-podium`}
-                      className={`leaderboard-podium-chip leaderboard-podium-chip-${index + 1} ${
-                        isCurrentUser ? 'is-current' : ''
-                      }`}
-                    >
-                      <span className="leaderboard-podium-place">#{index + 1}</span>
-                      <strong className="leaderboard-podium-title">
-                        {PODIUM_LABELS[index] || 'Arena Hero'}
-                      </strong>
-                      <div className="leaderboard-podium-name">
-                        {entry.username || 'Unknown athlete'}
-                      </div>
-                      <div className="leaderboard-podium-meta">
-                        <strong>
-                          {Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0)}
-                        </strong>
-                        <span>{entry.hydrationCredits ?? 0} credits</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="leaderboard-list">
-                {leaderboard.map((entry, index) => {
-                  const isCurrentUser = currentUserId
-                    ? String(entry.userId) === String(currentUserId)
-                    : false;
-                  const fluidityScore = Math.round(
-                    entry.maxFluidity ?? entry.highestFluidityScore ?? 0,
-                  );
-                  const progressWidth = `${Math.max(
-                    12,
-                    Math.round((fluidityScore / maxFluidityScore) * 100),
-                  )}%`;
-
-                  return (
-                    <div
-                      key={`${entry.userId}-${index}`}
-                      className={`leaderboard-row leaderboard-row-game ${
-                        isCurrentUser ? 'is-current' : ''
-                      }`}
-                    >
-                      <div className="leaderboard-rank-badge">
-                        <div className="leaderboard-rank">#{index + 1}</div>
-                      </div>
-                      <div className="leaderboard-user">
-                        <div className="leaderboard-user-top">
-                          <strong>{entry.username || 'Unknown athlete'}</strong>
-                          {isCurrentUser && <span className="leaderboard-you-tag">YOU</span>}
-                        </div>
-                        <span>{entry.latestExerciseType || 'Mixed session'}</span>
-                        <div className="leaderboard-power-track">
-                          <div
-                            className="leaderboard-power-fill"
-                            style={{ width: progressWidth }}
-                          />
-                        </div>
-                      </div>
-                      <div className="leaderboard-metrics">
-                        <strong>{fluidityScore}</strong>
-                        <span>{entry.hydrationCredits ?? 0} credits</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="status-banner" data-tone="info">
-              No leaderboard data has been recorded yet.
+        {leaderboardStatus === 'ready' && leaderboard.length > 0 && (
+          <>
+            {/* Podium top 3 */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {podiumEntries.map((entry, i) => {
+                const isMe = currentUserId ? String(entry.userId) === String(currentUserId) : false;
+                const score = Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0);
+                return (
+                  <div
+                    key={`${entry.userId}-podium`}
+                    className="flex flex-col items-center py-3 px-2 rounded-xl text-center"
+                    style={{
+                      background: isMe ? 'rgba(0,242,254,0.08)' : 'rgba(5,17,31,0.6)',
+                      border: `1px solid ${isMe ? 'rgba(0,242,254,0.2)' : 'rgba(255,255,255,0.04)'}`,
+                    }}
+                  >
+                    <span className="text-lg font-bold mb-0.5" style={{ color: PODIUM_ACCENT[i] }}>
+                      #{i + 1}
+                    </span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide mb-1" style={{ color: PODIUM_ACCENT[i] }}>
+                      {PODIUM_LABELS[i]}
+                    </span>
+                    <span className="text-xs font-medium truncate w-full" style={{ color: '#7a9bbf' }}>
+                      {entry.username || 'Unknown'}
+                    </span>
+                    <span className="text-sm font-bold mt-1" style={{ color: '#f0f6ff' }}>{score}</span>
+                  </div>
+                );
+              })}
             </div>
-          )
+
+            {/* Full list */}
+            <div className="flex flex-col gap-1.5">
+              {leaderboard.map((entry, i) => {
+                const isMe = currentUserId ? String(entry.userId) === String(currentUserId) : false;
+                const score = Math.round(entry.maxFluidity ?? entry.highestFluidityScore ?? 0);
+                const barWidth = `${Math.max(10, Math.round((score / maxFluidityScore) * 100))}%`;
+
+                return (
+                  <motion.div
+                    key={`${entry.userId}-${i}`}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{
+                      background: isMe ? 'rgba(0,242,254,0.06)' : 'rgba(5,17,31,0.4)',
+                      border: `1px solid ${isMe ? 'rgba(0,242,254,0.15)' : 'rgba(255,255,255,0.03)'}`,
+                    }}
+                  >
+                    <span
+                      className="text-xs font-bold w-6 text-center flex-shrink-0"
+                      style={{ color: i < 3 ? PODIUM_ACCENT[i] : '#3d5a80' }}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-xs font-semibold truncate" style={{ color: '#f0f6ff' }}>
+                          {entry.username || 'Unknown'}
+                        </span>
+                        {isMe && (
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                            style={{ background: 'rgba(0,242,254,0.15)', color: '#00f2fe' }}
+                          >
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <motion.div
+                          className="h-full rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: barWidth }}
+                          transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
+                          style={{
+                            background: isMe
+                              ? 'linear-gradient(90deg, #00f2fe, #4facfe)'
+                              : 'rgba(255,255,255,0.12)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{score}</span>
+                      <span className="text-[10px] block" style={{ color: '#3d5a80' }}>
+                        {entry.hydrationCredits ?? 0} cr
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
         )}
-      </div>
+      </Card>
 
-      <div className="glass-panel">
-        <h3 style={{ marginTop: 0 }}>THE SWELL SQUAD</h3>
-        <div className="feature-grid">
-          <button type="button" className="feature-button">
-            IMPORT CONTACTS
-          </button>
-          <button type="button" className="feature-button">
-            SEND INVITE LINK
-          </button>
+      {/* Squad card */}
+      <Card>
+        <h3 className="text-sm font-bold mb-3" style={{ color: '#f0f6ff' }}>The Swell Squad</h3>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {['Import Contacts', 'Send Invite Link'].map((label) => (
+            <motion.button
+              key={label}
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              className="py-2.5 rounded-xl text-xs font-semibold transition-all duration-200"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#7a9bbf',
+              }}
+            >
+              {label}
+            </motion.button>
+          ))}
         </div>
-
-        <div className="social-layout">
-          <div className="feature-card feature-card-coral">
-            <strong>SESSION HIGHLIGHTS</strong>
-            <p className="card-copy">
-              Flagged reps and standout recovery moments can surface here for quick team review.
+        <div className="grid grid-cols-1 gap-2">
+          <div
+            className="px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(255, 77, 109, 0.06)', border: '1px solid rgba(255,77,109,0.12)' }}
+          >
+            <span className="text-xs font-bold block mb-1" style={{ color: '#ff4d6d' }}>Session Highlights</span>
+            <p className="text-xs" style={{ color: '#7a9bbf' }}>
+              Flagged reps and standout recovery moments surface here for team review.
             </p>
           </div>
-
-          <div className="feature-card feature-card-cyan">
-            <strong>LIVE FEED STATUS</strong>
-            <p className="card-copy">
-              {realtimeStatus === 'connected'
-                ? 'Realtime alerts are connected and ready to update the dashboard.'
-                : 'Realtime sync will appear here once the backend connection is live.'}
+          <div
+            className="px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(0, 242, 254, 0.05)', border: '1px solid rgba(0,242,254,0.1)' }}
+          >
+            <span className="text-xs font-bold block mb-1" style={{ color: '#00f2fe' }}>Live Feed Status</span>
+            <p className="text-xs" style={{ color: '#7a9bbf' }}>
+              {isLive
+                ? 'Realtime alerts connected and updating the dashboard.'
+                : 'Realtime sync appears here once the backend connection is live.'}
             </p>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

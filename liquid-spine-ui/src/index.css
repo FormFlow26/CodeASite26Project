@@ -1,14 +1,36 @@
-:root {
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: #05111f;
+  --color-bg-surface: #0d1f35;
+  --color-bg-elevated: #112340;
+  --color-accent-cyan: #00f2fe;
+  --color-accent-indigo: #6366f1;
+  --color-danger: #ff4d6d;
+  --color-text-primary: #f0f6ff;
+  --color-text-secondary: #7a9bbf;
+  --color-text-muted: #3d5a80;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --ease-out-quart: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html,
@@ -19,4 +41,8 @@ body,
 
 body {
   margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #05111f;
+  color: #f0f6ff;
+  overflow-x: hidden;
 }

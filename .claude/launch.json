@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "FormFlow UI (Vite)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "liquid-spine-ui"
+    },
+    {
+      "name": "FormFlow Server (Node)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--watch", "src/server.js"],
+      "port": 4000,
+      "cwd": "."
+    }
+  ]
+}

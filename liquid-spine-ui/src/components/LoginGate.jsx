@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-
-const LOGIN_HIGHLIGHTS = [
-  {
-    title: 'Live Motion Scoring',
-    copy: 'Realtime posture feedback, combo tracking, and wipeout alerts in one flow.',
-  },
-  {
-    title: 'Competitive Energy',
-    copy: 'A fitness product that feels closer to a game arena than a dashboard.',
-  },
-  {
-    title: 'Judge-Ready Demo',
-    copy: 'Strong first impression, clear value story, and visual drama from the first click.',
-  },
-];
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginGate = ({
   authMode = 'login',
@@ -36,20 +22,18 @@ const LoginGate = ({
     const trimmedName = fullName.trim();
     const trimmedUsername = username.trim();
 
-    if (isSubmitting) {
-      return;
-    }
+    if (isSubmitting) return;
 
     if (authMode === 'signup' && (!trimmedName || !trimmedUsername)) {
-      setError('Enter your full name and username to create your FormFlow account.');
+      setError('Enter your full name and username to create your account.');
       return;
     }
 
     if (!trimmedEmail || !trimmedPassword) {
       setError(
         authMode === 'signup'
-          ? 'Enter your email and password to create your FormFlow account.'
-          : 'Enter your email and password to continue into FormFlow.',
+          ? 'Enter your email and password to create your account.'
+          : 'Enter your email and password to continue.',
       );
       return;
     }
@@ -62,144 +46,213 @@ const LoginGate = ({
     setError('');
 
     try {
-      await onLogin?.({
-        email: trimmedEmail,
-        password: trimmedPassword,
-        fullName: trimmedName,
-        username: trimmedUsername,
-        authMode,
-      });
+      await onLogin?.({ email: trimmedEmail, password: trimmedPassword, fullName: trimmedName, username: trimmedUsername, authMode });
     } catch (submitError) {
       setError(submitError.message || 'Authentication failed. Try again.');
     }
   };
 
+  const inputStyle = {
+    background: 'rgba(5, 17, 31, 0.6)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    color: '#f0f6ff',
+    fontSize: '16px',
+  };
+
+  const inputFocusClass = 'focus:outline-none focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/30';
+
   return (
-    <div className="login-screen page-transition">
-      <div className="login-ambient login-ambient-cyan" />
-      <div className="login-ambient login-ambient-coral" />
-      <div className="login-grid-lines" />
+    <div
+      className="relative min-h-[100dvh] flex flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #07152c 0%, #041023 100%)' }}
+    >
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none absolute -top-20 -left-20 w-80 h-80 rounded-full opacity-25"
+        style={{ background: 'radial-gradient(circle, #00f2fe 0%, transparent 70%)', filter: 'blur(70px)' }}
+      />
+      <div
+        className="pointer-events-none absolute bottom-10 -right-16 w-64 h-64 rounded-full opacity-15"
+        style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)', filter: 'blur(60px)' }}
+      />
 
-      <div className="login-shell">
-        <div className="login-brand">
-          {onBack && (
-            <button type="button" className="page-back-button auth-back-button" onClick={onBack}>
-              ← Back
-            </button>
-          )}
-          <p className="session-kicker">Entry Protocol</p>
-          <div className="login-hero-stack">
-            <span className="login-hero-chip">Liquid Spine Arena</span>
-            <h1 className="app-title login-brand-title">FORMFLOW</h1>
-            <h2 className="login-hero-heading">
-              Train like a player.
-              <br />
-              Recover like a pro.
-            </h2>
-          </div>
-          <p className="login-copy">
-            Enter the training arena before the onboarding sequence begins.
-            This keeps the demo feeling like a premium fitness game, not a raw prototype.
+      <div className="relative z-10 flex flex-col flex-1 px-6 pt-8 pb-10 max-w-[430px] mx-auto w-full">
+
+        {/* Back button */}
+        {onBack && (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            onClick={onBack}
+            className="self-start flex items-center gap-1.5 mb-8 text-sm font-medium transition-colors duration-200"
+            style={{ color: '#7a9bbf' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back
+          </motion.button>
+        )}
+
+        {/* Brand header */}
+        <div className="mb-8">
+          <span
+            className="text-xs font-bold tracking-widest uppercase mb-3 block"
+            style={{ color: '#3d5a80' }}
+          >
+            FormFlow
+          </span>
+          <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: '#f0f6ff' }}>
+            {authMode === 'signup' ? 'Create account' : 'Welcome back'}
+          </h1>
+          <p className="text-sm" style={{ color: '#7a9bbf' }}>
+            {authMode === 'signup'
+              ? 'Join the training arena and start scoring your form.'
+              : 'Sign in to continue your training session.'}
           </p>
-
-          <div className="login-highlight-grid">
-            {LOGIN_HIGHLIGHTS.map((item) => (
-              <div key={item.title} className="login-highlight-card">
-                <strong>{item.title}</strong>
-                <span>{item.copy}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <form className="glass-panel login-card" onSubmit={handleSubmit}>
-          <div className="login-card-header">
-            <span className="login-badge">Access Portal</span>
-            <h2 className="login-title">
-              {authMode === 'signup' ? 'Create Your Account' : 'Sign In to Begin'}
-            </h2>
-            <p className="card-copy">
-              {authMode === 'signup'
-                ? 'Create your account to save sessions, climb the leaderboard, and unlock the social feed.'
-                : 'Sign in with your FormFlow account to continue into the training arena.'}
-            </p>
-          </div>
-
-          <div className="login-auth-toggle">
-            <button
+        {/* Auth toggle */}
+        <div
+          className="flex p-1 rounded-xl mb-6"
+          style={{ background: 'rgba(13, 31, 53, 0.8)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {['login', 'signup'].map((mode) => (
+            <motion.button
+              key={mode}
               type="button"
-              className={`login-auth-pill ${authMode === 'login' ? 'is-selected' : ''}`}
-              onClick={() => onSwitchMode?.('login')}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { onSwitchMode?.(mode); setError(''); }}
+              className="relative flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200"
+              style={{ color: authMode === mode ? '#f0f6ff' : '#3d5a80' }}
             >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`login-auth-pill ${authMode === 'signup' ? 'is-selected' : ''}`}
-              onClick={() => onSwitchMode?.('signup')}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          {authMode === 'signup' && (
-            <>
-              <label className="login-field">
-                <span>Full Name</span>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Enter your full name"
+              {authMode === mode && (
+                <motion.div
+                  layoutId="auth-tab-bg"
+                  className="absolute inset-0 rounded-lg"
+                  style={{ background: 'rgba(0, 242, 254, 0.12)', border: '1px solid rgba(0,242,254,0.18)' }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
-              </label>
+              )}
+              <span className="relative z-10 capitalize">{mode === 'login' ? 'Sign In' : 'Sign Up'}</span>
+            </motion.button>
+          ))}
+        </div>
 
-              <label className="login-field">
-                <span>Username</span>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="Choose a username"
-                />
-              </label>
-            </>
-          )}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <AnimatePresence>
+            {authMode === 'signup' && (
+              <motion.div
+                key="signup-fields"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="overflow-hidden flex flex-col gap-4"
+              >
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: '#3d5a80' }}>Full Name</span>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className={`w-full px-4 py-3 rounded-xl placeholder-[#3d5a80] transition-all duration-200 ${inputFocusClass}`}
+                    style={inputStyle}
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: '#3d5a80' }}>Username</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Choose a username"
+                    className={`w-full px-4 py-3 rounded-xl placeholder-[#3d5a80] transition-all duration-200 ${inputFocusClass}`}
+                    style={inputStyle}
+                  />
+                </label>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <label className="login-field">
-            <span>Email</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: '#3d5a80' }}>Email</span>
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
+              className={`w-full px-4 py-3 rounded-xl placeholder-[#3d5a80] transition-all duration-200 ${inputFocusClass}`}
+              style={inputStyle}
             />
           </label>
 
-          <label className="login-field">
-            <span>Password</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold tracking-wide uppercase" style={{ color: '#3d5a80' }}>Password</span>
             <input
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter your password"
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={authMode === 'signup' ? 'Min. 8 characters' : 'Enter your password'}
+              className={`w-full px-4 py-3 rounded-xl placeholder-[#3d5a80] transition-all duration-200 ${inputFocusClass}`}
+              style={inputStyle}
             />
           </label>
 
-          {error && (
-            <div className="status-banner" data-tone="warning">
-              {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="px-4 py-3 rounded-xl text-sm"
+                style={{
+                  background: 'rgba(255, 77, 109, 0.1)',
+                  border: '1px solid rgba(255, 77, 109, 0.2)',
+                  color: '#ff4d6d',
+                }}
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <button type="submit" className="primary-button login-submit" disabled={isSubmitting}>
+          <motion.button
+            type="submit"
+            whileTap={{ scale: 0.97 }}
+            disabled={isSubmitting}
+            className="w-full py-4 rounded-xl text-sm font-bold tracking-wide mt-2 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              background: isSubmitting
+                ? 'rgba(0, 242, 254, 0.3)'
+                : 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
+              color: '#05111f',
+              boxShadow: isSubmitting ? 'none' : '0 8px 24px rgba(0, 242, 254, 0.25)',
+            }}
+          >
             {isSubmitting
               ? 'Authorizing...'
               : authMode === 'signup'
                 ? 'Create Account'
                 : 'Enter FormFlow'}
-          </button>
+          </motion.button>
         </form>
+
+        {/* Switch mode link */}
+        <p className="text-center text-sm mt-6" style={{ color: '#3d5a80' }}>
+          {authMode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <button
+            type="button"
+            onClick={() => { onSwitchMode?.(authMode === 'login' ? 'signup' : 'login'); setError(''); }}
+            className="font-semibold transition-colors duration-200 hover:opacity-80"
+            style={{ color: '#00f2fe' }}
+          >
+            {authMode === 'login' ? 'Sign up' : 'Sign in'}
+          </button>
+        </p>
       </div>
     </div>
   );

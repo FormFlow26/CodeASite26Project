@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import './App.css';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -74,11 +75,31 @@ function sameView(firstView, secondView) {
   );
 }
 
-function renderAppSurface(content, toneClass = '') {
+const screenVariants = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const screenTransition = { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] };
+
+function renderAppSurface(content, toneClass = '', screenKey = 'screen') {
   return (
     <div className={`mobile-scene ${toneClass}`.trim()}>
       <div className="mobile-surface">
-        {content}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={screenKey}
+            variants={screenVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={screenTransition}
+            style={{ minHeight: '100%' }}
+          >
+            {content}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -457,7 +478,7 @@ function App() {
   const canGoBack = navHistory.length > 0;
 
   if (!showLoginGate) {
-    return renderAppSurface(<LandingPage onStart={handleOpenAuth} />, 'mobile-scene-landing');
+    return renderAppSurface(<LandingPage onStart={handleOpenAuth} />, 'mobile-scene-landing', 'landing');
   }
 
   if (!hasEnteredApp) {
@@ -470,6 +491,7 @@ function App() {
         isSubmitting={isAuthSubmitting}
       />,
       'mobile-scene-login',
+      `login-${authMode}`,
     );
   }
 
@@ -510,49 +532,72 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'home' && (
-          <div key={`screen-home-${hasOnboarded ? 'ready' : 'onboarding'}`} className="page-transition">
-            <OnboardingModal
-              hasOnboarded={hasOnboarded}
-              selectedLevel={selectedLevel}
-              onComplete={handleCompleteOnboarding}
-              onSelectLevel={setSelectedLevel}
-              onGoToGym={() => handleTabChange('main')}
-              onGoToSocial={() => handleTabChange('social')}
-              onBack={canGoBack ? handleBack : null}
-            />
-          </div>
-        )}
-        {activeTab === 'main' && (
-          <div key="screen-main" className="page-transition">
-            <GymTab
-              onSuccessfulRep={handleSuccessfulRep}
-              onRejectedRep={handleRejectedRep}
-              wipeoutEvent={wipeoutEvent}
-              replaySession={replaySession}
-              replayStatus={replayStatus}
-              replayError={replayError}
-              isWipeoutActive={isWipeoutActive}
-              currentUserId={authenticatedUser?._id || playerProfile?._id || runtimeConfig.userId}
-              currentGroupId={
-                (playerProfile?.groupId && typeof playerProfile.groupId === 'object'
-                  ? playerProfile.groupId._id
-                  : playerProfile?.groupId)
-                || authenticatedUser?.groupId
-                || runtimeConfig.groupId
-              }
-            />
-          </div>
-        )}
-        {activeTab === 'social' && (
-          <div key="screen-social" className="page-transition">
-            <SocialTab
-              playerProfile={playerProfile}
-              currentUserId={playerProfile?._id || authenticatedUser?._id || runtimeConfig.userId}
-              realtimeStatus={realtimeStatus}
-            />
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === 'home' && (
+            <motion.div
+              key={`screen-home-${hasOnboarded ? 'ready' : 'onboarding'}`}
+              variants={screenVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={screenTransition}
+            >
+              <OnboardingModal
+                hasOnboarded={hasOnboarded}
+                selectedLevel={selectedLevel}
+                onComplete={handleCompleteOnboarding}
+                onSelectLevel={setSelectedLevel}
+                onGoToGym={() => handleTabChange('main')}
+                onGoToSocial={() => handleTabChange('social')}
+                onBack={canGoBack ? handleBack : null}
+              />
+            </motion.div>
+          )}
+          {activeTab === 'main' && (
+            <motion.div
+              key="screen-main"
+              variants={screenVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={screenTransition}
+            >
+              <GymTab
+                onSuccessfulRep={handleSuccessfulRep}
+                onRejectedRep={handleRejectedRep}
+                wipeoutEvent={wipeoutEvent}
+                replaySession={replaySession}
+                replayStatus={replayStatus}
+                replayError={replayError}
+                isWipeoutActive={isWipeoutActive}
+                currentUserId={authenticatedUser?._id || playerProfile?._id || runtimeConfig.userId}
+                currentGroupId={
+                  (playerProfile?.groupId && typeof playerProfile.groupId === 'object'
+                    ? playerProfile.groupId._id
+                    : playerProfile?.groupId)
+                  || authenticatedUser?.groupId
+                  || runtimeConfig.groupId
+                }
+              />
+            </motion.div>
+          )}
+          {activeTab === 'social' && (
+            <motion.div
+              key="screen-social"
+              variants={screenVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={screenTransition}
+            >
+              <SocialTab
+                playerProfile={playerProfile}
+                currentUserId={playerProfile?._id || authenticatedUser?._id || runtimeConfig.userId}
+                realtimeStatus={realtimeStatus}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="app-bottom-dock">
