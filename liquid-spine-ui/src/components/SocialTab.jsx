@@ -253,7 +253,7 @@ const SocialTab = ({ playerProfile, currentUserId, realtimeStatus }) => {
                           transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
                           style={{
                             background: isMe
-                              ? 'linear-gradient(90deg, #00f2fe, #4facfe)'
+                              ? '#00f2fe'
                               : 'rgba(255,255,255,0.12)',
                           }}
                         />

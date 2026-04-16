@@ -476,30 +476,22 @@ function App() {
 
   return renderAppSurface(
     <div className={`app-shell ${isWipeoutActive ? 'is-wipeout-active' : ''}`}>
-      <Header
-        playerScore={playerScore}
-        combo={combo}
-        selectedLevel={selectedLevel}
-        playerProfile={playerProfile}
-        realtimeStatus={realtimeStatus}
-        isWipeoutActive={isWipeoutActive}
-        onAddHydrationCredits={handleAddHydrationCredits}
-      />
+      <div className="app-header-strip">
+        <Header
+          playerScore={playerScore}
+          combo={combo}
+          selectedLevel={selectedLevel}
+          playerProfile={playerProfile}
+          realtimeStatus={realtimeStatus}
+          isWipeoutActive={isWipeoutActive}
+          onAddHydrationCredits={handleAddHydrationCredits}
+        />
+      </div>
 
       <div className="app-content">
-        {canGoBack && activeTab !== 'home' && (
-          <div className="main-content page-toolbar-shell page-transition">
-            <button type="button" className="page-back-button" onClick={handleBack}>
-              ← Back
-            </button>
-          </div>
-        )}
-
         {profileError && (
-          <div className="main-content">
-            <div className="status-banner" data-tone="warning">
-              Live profile could not be loaded: {profileError}
-            </div>
+          <div className="status-banner" data-tone="warning">
+            Profile error: {profileError}
           </div>
         )}
 

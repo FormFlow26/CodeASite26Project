@@ -71,26 +71,21 @@ const LoginGate = ({
   };
 
   const inputBase = {
-    background: 'rgba(5, 17, 31, 0.7)',
-    border: '1px solid rgba(255, 255, 255, 0.09)',
+    background: '#0b1929',
+    border: '1px solid #1a2e45',
     color: '#f0f6ff',
     fontSize: '16px',
     outline: 'none',
+    borderRadius: 0,
     transition: 'border-color 0.2s',
   };
 
   return (
     <div
       className="relative min-h-[100dvh] flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #07152c 0%, #041023 100%)' }}
+      style={{ background: '#05111f' }}
     >
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-20"
-        style={{ background: 'radial-gradient(circle, #00f2fe, transparent 70%)', filter: 'blur(70px)' }} />
-      <div className="pointer-events-none absolute -bottom-16 -right-16 w-72 h-72 rounded-full opacity-15"
-        style={{ background: 'radial-gradient(circle, #6366f1, transparent 70%)', filter: 'blur(60px)' }} />
-
-      <div className="relative z-10 flex flex-col flex-1 px-6 pt-8 pb-10 w-full max-w-[430px] mx-auto">
+      <div className="flex flex-col flex-1 px-6 pt-8 pb-10 w-full max-w-[430px] mx-auto">
 
         {/* Back */}
         {onBack && (
@@ -124,8 +119,8 @@ const LoginGate = ({
         </div>
 
         {/* Mode toggle */}
-        <div className="flex p-1 rounded-xl mb-6"
-          style={{ background: 'rgba(13, 31, 53, 0.9)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex mb-6"
+          style={{ background: '#0b1929', border: '1px solid #1a2e45' }}>
           {[
             { key: 'login', label: 'Sign In' },
             { key: 'signup', label: 'Sign Up' },
@@ -135,18 +130,16 @@ const LoginGate = ({
               type="button"
               whileTap={{ scale: 0.97 }}
               onClick={() => handleModeSwitch(key)}
-              className="relative flex-1 py-2.5 rounded-lg text-sm font-semibold"
-              style={{ color: authMode === key ? '#f0f6ff' : '#3d5a80' }}
+              className="relative flex-1 py-2.5 text-sm font-bold tracking-wide"
+              style={{
+                color: authMode === key ? '#05111f' : '#5a7a9a',
+                background: authMode === key ? '#00f2fe' : 'transparent',
+                border: 'none',
+                borderRadius: 0,
+                cursor: 'pointer',
+              }}
             >
-              {authMode === key && (
-                <motion.div
-                  layoutId="auth-mode-bg"
-                  className="absolute inset-0 rounded-lg"
-                  style={{ background: 'rgba(0,242,254,0.1)', border: '1px solid rgba(0,242,254,0.18)' }}
-                  transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-                />
-              )}
-              <span className="relative z-10">{label}</span>
+              {label}
             </motion.button>
           ))}
         </div>
@@ -172,10 +165,10 @@ const LoginGate = ({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Your full name"
-                    className="w-full px-4 py-3 rounded-xl"
+                    className="w-full px-4 py-3"
                     style={inputBase}
-                    onFocus={e => (e.target.style.borderColor = 'rgba(0,242,254,0.4)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
+                    onFocus={e => (e.target.style.borderColor = '#00f2fe')}
+                    onBlur={e => (e.target.style.borderColor = '#1a2e45')}
                   />
                 </label>
                 <label className="flex flex-col gap-1.5">
@@ -186,10 +179,10 @@ const LoginGate = ({
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Choose a username"
-                    className="w-full px-4 py-3 rounded-xl"
+                    className="w-full px-4 py-3"
                     style={inputBase}
-                    onFocus={e => (e.target.style.borderColor = 'rgba(0,242,254,0.4)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
+                    onFocus={e => (e.target.style.borderColor = '#00f2fe')}
+                    onBlur={e => (e.target.style.borderColor = '#1a2e45')}
                   />
                 </label>
               </motion.div>
@@ -204,7 +197,7 @@ const LoginGate = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-4 py-3 rounded-xl"
+              className="w-full px-4 py-3"
               style={inputBase}
               onFocus={e => (e.target.style.borderColor = 'rgba(0,242,254,0.4)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
@@ -219,7 +212,7 @@ const LoginGate = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={authMode === 'signup' ? 'Min. 8 characters' : '••••••••'}
-              className="w-full px-4 py-3 rounded-xl"
+              className="w-full px-4 py-3"
               style={inputBase}
               onFocus={e => (e.target.style.borderColor = 'rgba(0,242,254,0.4)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
@@ -235,11 +228,12 @@ const LoginGate = ({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
-                className="px-4 py-3 rounded-xl text-sm"
+                className="px-4 py-3 text-sm"
                 style={{
-                  background: 'rgba(255,77,109,0.08)',
-                  border: '1px solid rgba(255,77,109,0.22)',
+                  background: '#0b1929',
+                  border: '1px solid #ff4d6d',
                   color: '#ff4d6d',
+                  borderRadius: 0,
                 }}
               >
                 {error}
@@ -252,13 +246,12 @@ const LoginGate = ({
             type="submit"
             whileTap={{ scale: 0.97 }}
             disabled={submitting}
-            className="w-full py-4 rounded-xl text-sm font-bold tracking-wide mt-1 transition-opacity duration-200"
+            className="w-full py-4 text-sm font-bold tracking-widest uppercase mt-1"
             style={{
-              background: submitting
-                ? 'rgba(0,242,254,0.25)'
-                : 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-              color: '#05111f',
-              boxShadow: submitting ? 'none' : '0 8px 24px rgba(0,242,254,0.22)',
+              background: submitting ? '#1a2e45' : '#00f2fe',
+              color: submitting ? '#2d4a66' : '#05111f',
+              border: 'none',
+              borderRadius: 0,
               cursor: submitting ? 'not-allowed' : 'pointer',
             }}
           >

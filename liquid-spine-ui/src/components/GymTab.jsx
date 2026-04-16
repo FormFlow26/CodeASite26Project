@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReplayChart from './ReplayChart';
 import { startFormFlow } from '../formflow/startFormFlow.js';
 import { getRuntimeConfig } from '../lib/formflowApi';
-import tankBodyReference from '../assets/tank-body-reference.png';
 
 const MUSCLE_PRESETS = {
   Quads: { fill: 30, goal: '4 × 12', tips: 'Keep heels planted.' },
@@ -25,36 +23,6 @@ const INITIAL_FEEDBACK = {
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
-
-const Card = ({ children, className = '', style = {} }) => (
-  <div
-    className={`rounded-2xl p-4 ${className}`}
-    style={{
-      background: 'rgba(13, 31, 53, 0.7)',
-      border: '1px solid rgba(255, 255, 255, 0.06)',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const StatusBanner = ({ tone, children }) => {
-  const styles = {
-    info: { bg: 'rgba(0, 242, 254, 0.06)', border: 'rgba(0,242,254,0.15)', color: '#7a9bbf' },
-    success: { bg: 'rgba(0, 242, 254, 0.1)', border: 'rgba(0,242,254,0.25)', color: '#00f2fe' },
-    warning: { bg: 'rgba(255, 77, 109, 0.08)', border: 'rgba(255,77,109,0.2)', color: '#ff4d6d' },
-  };
-  const s = styles[tone] || styles.info;
-  return (
-    <div
-      className="px-4 py-3 rounded-xl text-sm leading-snug"
-      style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}
-    >
-      {children}
-    </div>
-  );
-};
 
 const GymTab = ({
   onSuccessfulRep,
@@ -88,9 +56,6 @@ const GymTab = ({
     ? clamp(Math.round(lastRepFluidity ?? activeMuscleData.fill), 0, 100)
     : activeMuscleData.fill;
   const liveKinkCount = wipeoutEvent?.totalKinks ?? wipeoutEvent?.kinkSnapshots?.length ?? 0;
-  const liveWipeoutMessage = wipeoutEvent
-    ? `${wipeoutEvent.exerciseType || 'Workout'} wipeout — ${liveKinkCount} posture breaks flagged.`
-    : null;
 
   const stopCamera = () => {
     formflowRef.current?.stop();
@@ -108,7 +73,7 @@ const GymTab = ({
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraStatus('error');
-      setCameraError('Camera access is not supported in this browser.');
+      setCameraError('Camera not supported in this browser.');
       setFeedback({ tone: 'warning', text: 'Form check unavailable here, but you can still explore the prototype.' });
       return;
     }
@@ -159,264 +124,138 @@ const GymTab = ({
     }
   };
 
-  return (
-    <div className="flex flex-col gap-4 pb-4">
+  const feedbackColor = feedback.tone === 'success' ? '#00f2fe' : feedback.tone === 'warning' ? '#ff4d6d' : '#5a7a9a';
 
-      {/* Muscle selector */}
-      <div className="flex gap-2">
+  return (
+    <div className="gym-shell">
+
+      {/* Muscle selector strip */}
+      <div className="muscle-strip">
         {Object.keys(muscleData).map((name) => (
-          <motion.button
+          <button
             key={name}
             type="button"
-            whileTap={{ scale: 0.95 }}
             onClick={() => setActiveMuscle(name)}
-            className="flex-1 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-200"
-            style={{
-              background: activeMuscle === name ? 'rgba(0, 242, 254, 0.12)' : 'rgba(13, 31, 53, 0.6)',
-              border: `1px solid ${activeMuscle === name ? 'rgba(0,242,254,0.3)' : 'rgba(255,255,255,0.06)'}`,
-              color: activeMuscle === name ? '#00f2fe' : '#7a9bbf',
-            }}
+            className={`muscle-tab${activeMuscle === name ? ' is-active' : ''}`}
           >
             {name}
-          </motion.button>
+          </button>
         ))}
       </div>
 
-      {/* Main camera + gauge card */}
-      <Card>
-        {/* Card header */}
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-base font-bold" style={{ color: '#f0f6ff' }}>{activeMuscle}</h2>
-            <p className="text-xs mt-0.5" style={{ color: '#3d5a80' }}>Live form tracking</p>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-semibold uppercase tracking-widest block" style={{ color: '#3d5a80' }}>Goal</span>
-            <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{activeMuscleData.goal}</span>
-          </div>
-        </div>
+      {/* Camera hero — fills remaining space */}
+      <div className="camera-hero">
+        {/* Video element — always mounted, hidden when not ready */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ display: isCameraReady ? 'block' : 'none' }}
+        />
 
-        {/* Meta row */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {[
-            { label: 'Coach Cue', value: activeMuscleData.tips },
-            { label: 'Status', value: isCameraReady ? 'Tracking live' : 'Standby' },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="px-3 py-2 rounded-xl"
-              style={{ background: 'rgba(5, 17, 31, 0.5)', border: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-widest block mb-0.5" style={{ color: '#3d5a80' }}>{item.label}</span>
-              <span className="text-xs font-medium" style={{ color: '#7a9bbf' }}>{item.value}</span>
-            </div>
-          ))}
-        </div>
+        {/* Idle / requesting / error placeholder */}
+        {!isCameraReady && (
+          <div className="camera-idle-placeholder">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ opacity: 0.3 }}>
+              <rect x="2" y="8" width="20" height="16" rx="2" stroke="#f0f6ff" strokeWidth="1.5"/>
+              <path d="M22 13l8-4v14l-8-4V13z" stroke="#f0f6ff" strokeWidth="1.5" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: '#2d4a66' }}>
+              {isRequestingCamera ? 'Starting camera...' : cameraError || 'Camera off'}
+            </p>
+          </div>
+        )}
 
-        {/* Camera stage */}
-        <div className="camera-stage">
-          <div
-            className="water-container"
-            style={{ transform: isCameraReady ? 'scale(0.8)' : 'scale(1)' }}
+        {/* Bottom overlay: fluidity bar + feedback */}
+        <div className="camera-overlay">
+          <div className="fluidity-bar-track">
+            <div className="fluidity-bar-fill" style={{ width: `${displayedFill}%` }} />
+          </div>
+          <div className="camera-overlay-text">
+            <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: feedbackColor }}>
+              {feedback.text}
+            </span>
+            <span className="text-[10px] font-bold tracking-widest" style={{ color: '#2d4a66' }}>
+              {displayedFill}%
+            </span>
+          </div>
+          {lastRepFlags.length > 0 && (
+            <p className="text-[9px] mt-1" style={{ color: '#ff4d6d' }}>
+              Flags: {lastRepFlags.join(', ')}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Info row */}
+      <div className="gym-info-row">
+        <div className="gym-info-cell">
+          <p className="gym-info-label">Focus</p>
+          <p className="gym-info-value">{activeMuscle} · {activeMuscleData.goal}</p>
+        </div>
+        <div className="gym-info-cell">
+          <p className="gym-info-label">Coach cue</p>
+          <p className="gym-info-value">{activeMuscleData.tips}</p>
+        </div>
+        <div className="gym-info-cell">
+          <p className="gym-info-label">Status</p>
+          <p className="gym-info-value" style={{ color: isCameraReady ? '#00f2fe' : '#5a7a9a' }}>
+            {isCameraReady ? 'Tracking live' : 'Standby'}
+          </p>
+        </div>
+      </div>
+
+      {/* Wipeout stat strip — shown when alert received */}
+      <AnimatePresence>
+        {wipeoutEvent && (
+          <motion.div
+            className="gym-stat-strip"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
           >
-            <div className="tank-muscle-badge">{activeMuscle}</div>
-            <div className={`tank-muscle-graphic tank-muscle-graphic--${activeMuscle.toLowerCase()}`}>
-              <img
-                src={tankBodyReference}
-                alt=""
-                className="tank-body-reference"
-                aria-hidden="true"
-              />
-              <div className="tank-muscle-overlay">
-                <span className="tank-highlight tank-highlight-chest" />
-                <span className="tank-highlight tank-highlight-back" />
-                <span className="tank-highlight tank-highlight-quad-left" />
-                <span className="tank-highlight tank-highlight-quad-right" />
-              </div>
-            </div>
-            <div className="water-fill" style={{ height: `${displayedFill}%` }} />
-            <div className="water-level-label">{displayedFill}%</div>
-          </div>
-
-          <div className="camera-shell" style={{ display: isCameraReady ? 'block' : 'none' }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              style={{
-                width: '160px',
-                height: '220px',
-                objectFit: 'cover',
-                borderRadius: '12px',
-                border: '2px solid rgba(0, 242, 254, 0.3)',
-                boxShadow: '0 0 20px rgba(0, 242, 254, 0.1)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Status messages */}
-        <div className="flex flex-col gap-2 mt-4">
-          <AnimatePresence>
-            {liveWipeoutMessage && (
-              <motion.div key="wipeout" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <StatusBanner tone="warning">{liveWipeoutMessage}</StatusBanner>
-              </motion.div>
-            )}
-            {cameraError && (
-              <motion.div key="cam-error" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <StatusBanner tone="warning">{cameraError}</StatusBanner>
-              </motion.div>
-            )}
-            {!hasTracking && (
-              <motion.div key="no-tracking" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <StatusBanner tone="warning">Log in to enable live tracking and scoring.</StatusBanner>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <StatusBanner tone={feedback.tone}>{feedback.text}</StatusBanner>
-          {isCameraReady && lastRepFluidity !== null && (
-            <StatusBanner tone="info">Last rep quality: {Math.round(lastRepFluidity)}%</StatusBanner>
-          )}
-          {isCameraReady && lastRepFlags.length > 0 && (
-            <StatusBanner tone="warning">Flags: {lastRepFlags.join(', ')}</StatusBanner>
-          )}
-        </div>
-
-        {/* Action */}
-        <div className="mt-4">
-          {isCameraReady ? (
-            <div className="flex flex-col gap-2">
-              <StatusBanner tone="info">Automatic rep detection active. Move through the exercise to score reps.</StatusBanner>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.96 }}
-                onClick={stopCamera}
-                className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#7a9bbf',
-                }}
-              >
-                Stop Camera
-              </motion.button>
-            </div>
-          ) : (
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={startCamera}
-              disabled={isRequestingCamera || !hasTracking}
-              className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                background: isRequestingCamera
-                  ? 'rgba(0,242,254,0.2)'
-                  : 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-                color: '#05111f',
-                boxShadow: isRequestingCamera ? 'none' : '0 8px 24px rgba(0, 242, 254, 0.2)',
-              }}
-            >
-              {isRequestingCamera ? 'Requesting camera...' : 'Start Form Check'}
-            </motion.button>
-          )}
-        </div>
-      </Card>
-
-      {/* Live session card */}
-      <Card
-        style={{
-          background: 'rgba(13, 31, 53, 0.7)',
-          border: isWipeoutActive ? '1px solid rgba(255, 77, 109, 0.3)' : '1px solid rgba(255,255,255,0.06)',
-          boxShadow: isWipeoutActive ? '0 0 30px rgba(255, 77, 109, 0.12)' : 'none',
-          transition: 'border-color 0.3s, box-shadow 0.3s',
-        }}
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>Current Session</h3>
-            <p className="text-xs mt-0.5" style={{ color: '#3d5a80' }}>Live coaching alerts</p>
-          </div>
-          <span
-            className="text-[10px] font-semibold px-2 py-1 rounded-full"
-            style={{
-              background: wipeoutEvent ? 'rgba(255,77,109,0.1)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${wipeoutEvent ? 'rgba(255,77,109,0.2)' : 'rgba(255,255,255,0.06)'}`,
-              color: wipeoutEvent ? '#ff4d6d' : '#3d5a80',
-            }}
-          >
-            {wipeoutEvent ? 'Alert' : 'Standby'}
-          </span>
-        </div>
-
-        {wipeoutEvent ? (
-          <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Total kinks', value: liveKinkCount },
-              { label: 'Avg fluidity', value: Math.round(wipeoutEvent.averageFluidity ?? 0) },
-              { label: 'Max fluidity', value: Math.round(wipeoutEvent.maxFluidity ?? 0) },
-              { label: 'Exercise', value: wipeoutEvent.exerciseType || 'Unknown' },
+              { label: 'Kinks', value: liveKinkCount },
+              { label: 'Avg fluidity', value: `${Math.round(wipeoutEvent.averageFluidity ?? 0)}%` },
+              { label: 'Max fluidity', value: `${Math.round(wipeoutEvent.maxFluidity ?? 0)}%` },
+              { label: 'Exercise', value: wipeoutEvent.exerciseType || '—' },
             ].map((stat) => (
-              <div
-                key={stat.label}
-                className="px-3 py-2.5 rounded-xl"
-                style={{ background: 'rgba(5,17,31,0.5)', border: '1px solid rgba(255,255,255,0.04)' }}
-              >
-                <span className="text-[10px] uppercase tracking-widest block mb-0.5" style={{ color: '#3d5a80' }}>{stat.label}</span>
-                <span className="text-base font-bold" style={{ color: '#f0f6ff' }}>{stat.value}</span>
+              <div key={stat.label} className="gym-stat-cell">
+                <p className="gym-info-label">{stat.label}</p>
+                <p className="gym-info-value" style={{ color: '#ff4d6d' }}>{stat.value}</p>
               </div>
             ))}
-          </div>
-        ) : (
-          <StatusBanner tone="info">No coaching alerts yet. Flagged reps will appear here instantly.</StatusBanner>
+          </motion.div>
         )}
-      </Card>
+      </AnimatePresence>
 
-      {/* Replay card */}
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>Post-Workout Analysis</h3>
-            <p className="text-xs mt-0.5" style={{ color: '#3d5a80' }}>Fluidity over time</p>
-          </div>
-        </div>
-
-        {replayStatus === 'idle' && (
-          <StatusBanner tone="info">Waiting for replay data from the latest flagged set.</StatusBanner>
-        )}
-        {replayStatus === 'loading' && (
-          <div className="flex gap-2 items-center py-3">
-            <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'rgba(0,242,254,0.3)', borderTopColor: '#00f2fe' }} />
-            <span className="text-xs" style={{ color: '#7a9bbf' }}>Loading replay...</span>
-          </div>
-        )}
-        {replayStatus === 'error' && (
-          <StatusBanner tone="warning">Replay unavailable: {replayError}</StatusBanner>
-        )}
-        {replayStatus === 'ready' && replaySession && (
-          <>
-            <ReplayChart snapshots={replaySession.poseSnapshots} />
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              {[
-                { label: 'Athlete', value: replaySession.user?.username || 'Unknown' },
-                { label: 'Avg fluidity', value: Math.round(replaySession.summary?.averageFluidity ?? 0) },
-                { label: 'Max fluidity', value: Math.round(replaySession.summary?.maxFluidity ?? 0) },
-                { label: 'Total kinks', value: replaySession.summary?.totalKinks ?? 0 },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="px-3 py-2.5 rounded-xl"
-                  style={{ background: 'rgba(5,17,31,0.5)', border: '1px solid rgba(255,255,255,0.04)' }}
-                >
-                  <span className="text-[10px] uppercase tracking-widest block mb-0.5" style={{ color: '#3d5a80' }}>{stat.label}</span>
-                  <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{stat.value}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </Card>
+      {/* CTA button */}
+      {isCameraReady ? (
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={stopCamera}
+          className="gym-cta is-stop"
+        >
+          Stop Camera
+        </motion.button>
+      ) : (
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={startCamera}
+          disabled={isRequestingCamera || !hasTracking}
+          className="gym-cta"
+        >
+          {isRequestingCamera ? 'Starting...' : !hasTracking ? 'Log in to track' : `Start Form Check — ${activeMuscle}`}
+          {!isRequestingCamera && hasTracking && (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginLeft: 4 }}>
+              <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </motion.button>
+      )}
     </div>
   );
 };

@@ -1,11 +1,8 @@
-/* ─── Shell & Scene Wrapper ─────────────────────────────────── */
+/* ─── Shell ─────────────────────────────────────────────────── */
 
 body {
   margin: 0;
-  background-color: #05111f;
-  background-image:
-    radial-gradient(circle at 18% 12%, rgba(0, 242, 254, 0.1) 0%, transparent 30%),
-    radial-gradient(circle at 84% 78%, rgba(99, 102, 241, 0.08) 0%, transparent 28%);
+  background: #05111f;
   color: #f0f6ff;
   overflow-x: hidden;
 }
@@ -19,9 +16,6 @@ body {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 0;
-  position: relative;
-  isolation: isolate;
 }
 
 .mobile-surface {
@@ -29,330 +23,291 @@ body {
   width: 100%;
   max-width: 430px;
   min-height: 100dvh;
-  background: linear-gradient(180deg, #07152c 0%, #041023 100%);
+  background: #05111f;
   overflow: clip;
-}
-
-/* Glow orbs on the shell */
-.mobile-surface::before {
-  content: '';
-  position: fixed;
-  top: -80px;
-  left: -60px;
-  width: 340px;
-  height: 340px;
-  border-radius: 999px;
-  background: rgba(0, 242, 254, 0.55);
-  filter: blur(80px);
-  opacity: 0.14;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.mobile-surface::after {
-  content: '';
-  position: fixed;
-  right: -80px;
-  bottom: 80px;
-  width: 300px;
-  height: 300px;
-  border-radius: 999px;
-  background: rgba(99, 102, 241, 0.5);
-  filter: blur(80px);
-  opacity: 0.1;
-  pointer-events: none;
-  z-index: 0;
 }
 
 .app-shell {
   position: relative;
   z-index: 1;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 0;
+  overflow: hidden;
 }
 
+/* Header strip */
+.app-header-strip {
+  flex-shrink: 0;
+  border-bottom: 1px solid #1a2e45;
+  background: #05111f;
+  z-index: 10;
+}
+
+/* Content area */
 .app-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 100px;
-  overflow: visible;
+  overflow: hidden;
+  position: relative;
 }
 
+/* Bottom nav dock */
 .app-bottom-dock {
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
-  padding: 8px 0 max(12px, env(safe-area-inset-bottom));
-  background: linear-gradient(to top, #05111f 60%, transparent);
+  flex-shrink: 0;
+  border-top: 1px solid #1a2e45;
+  background: #05111f;
   z-index: 100;
 }
 
-/* Back button — used by App.jsx */
-.page-back-button,
-.auth-back-button {
+/* Back button */
+.page-back-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #7a9bbf;
-  font-weight: 600;
-  font-size: 0.85rem;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: #5a7a9a;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.15s;
 }
 
-.page-back-button:hover,
-.auth-back-button:hover {
+.page-back-button:hover {
   color: #f0f6ff;
-  border-color: rgba(255, 255, 255, 0.18);
 }
 
-.page-toolbar-shell {
-  padding-bottom: 8px;
-  position: sticky;
-  top: 12px;
-  z-index: 12;
-  pointer-events: none;
-}
-
-.page-toolbar-shell .page-back-button {
-  pointer-events: auto;
-}
-
-/* Status banner — kept for App.jsx inline banners */
+/* Status banners */
 .status-banner {
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  padding: 10px 16px;
+  font-size: 0.8rem;
   line-height: 1.4;
-  margin-bottom: 8px;
+  border-top: 1px solid #1a2e45;
 }
 
 .status-banner[data-tone="info"] {
-  background: rgba(0, 242, 254, 0.06);
-  border: 1px solid rgba(0, 242, 254, 0.15);
-  color: #7a9bbf;
+  color: #5a7a9a;
 }
 
 .status-banner[data-tone="success"] {
-  background: rgba(0, 242, 254, 0.1);
-  border: 1px solid rgba(0, 242, 254, 0.25);
   color: #00f2fe;
 }
 
 .status-banner[data-tone="warning"] {
-  background: rgba(255, 77, 109, 0.08);
-  border: 1px solid rgba(255, 77, 109, 0.2);
   color: #ff4d6d;
+  border-top-color: rgba(255, 77, 109, 0.2);
 }
 
-/* Wipeout active state — app-shell modifier */
-.app-shell.is-wipeout-active .live-session-panel {
-  border-color: rgba(255, 77, 109, 0.35) !important;
-  box-shadow: 0 0 30px rgba(255, 77, 109, 0.12);
-}
+/* ─── GymTab — Fixed no-scroll camera layout ─────────────────── */
 
-/* ─── Water Tank / Muscle Gauge ─────────────────────────────── */
-
-.gym-layout {
+.gym-shell {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.camera-stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 16px 0;
-  min-height: 180px;
-}
-
-.water-container {
-  position: relative;
-  width: 110px;
-  height: 170px;
-  border-radius: 16px;
+  height: 100%;
   overflow: hidden;
-  border: 2px solid rgba(0, 242, 254, 0.2);
-  background: rgba(5, 17, 31, 0.7);
+}
+
+/* Muscle selector strip */
+.muscle-strip {
+  display: flex;
   flex-shrink: 0;
-  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-bottom: 1px solid #1a2e45;
 }
 
-.tank-muscle-badge {
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+.muscle-tab {
+  flex: 1;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  border-right: 1px solid #1a2e45;
+  color: #5a7a9a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.muscle-tab:last-child {
+  border-right: none;
+}
+
+.muscle-tab.is-active {
   color: #00f2fe;
-  z-index: 10;
-  white-space: nowrap;
+  background: #0b1929;
 }
 
-.tank-muscle-graphic {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/* Camera hero */
+.camera-hero {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
 }
 
-.tank-body-reference {
+.camera-hero video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  opacity: 0.22;
-  filter: brightness(0.85) contrast(1.1);
+  object-fit: cover;
+  display: block;
 }
 
-.tank-muscle-overlay {
-  position: absolute;
-  inset: 0;
+/* Idle placeholder when no camera */
+.camera-idle-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0b1929;
+  gap: 8px;
 }
 
-.tank-highlight {
-  position: absolute;
-  background: rgba(0, 242, 254, 0.35);
-  border-radius: 4px;
-  filter: blur(2px);
-  transition: opacity 0.3s;
-}
-
-/* Chest highlight */
-.tank-muscle-graphic--chest .tank-highlight-chest {
-  top: 28%;
-  left: 22%;
-  width: 56%;
-  height: 18%;
-  opacity: 1;
-}
-.tank-muscle-graphic--chest .tank-highlight-back,
-.tank-muscle-graphic--chest .tank-highlight-quad-left,
-.tank-muscle-graphic--chest .tank-highlight-quad-right {
-  opacity: 0;
-}
-
-/* Back highlight */
-.tank-muscle-graphic--back .tank-highlight-back {
-  top: 30%;
-  left: 18%;
-  width: 64%;
-  height: 20%;
-  opacity: 1;
-}
-.tank-muscle-graphic--back .tank-highlight-chest,
-.tank-muscle-graphic--back .tank-highlight-quad-left,
-.tank-muscle-graphic--back .tank-highlight-quad-right {
-  opacity: 0;
-}
-
-/* Quads highlight */
-.tank-muscle-graphic--quads .tank-highlight-quad-left {
-  bottom: 18%;
-  left: 18%;
-  width: 28%;
-  height: 22%;
-  opacity: 1;
-}
-.tank-muscle-graphic--quads .tank-highlight-quad-right {
-  bottom: 18%;
-  right: 18%;
-  width: 28%;
-  height: 22%;
-  opacity: 1;
-}
-.tank-muscle-graphic--quads .tank-highlight-chest,
-.tank-muscle-graphic--quads .tank-highlight-back {
-  opacity: 0;
-}
-
-.water-fill {
+/* Overlay — bottom of camera */
+.camera-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 242, 254, 0.55) 0%,
-    rgba(79, 172, 254, 0.35) 60%,
-    rgba(0, 242, 254, 0.12) 100%
-  );
-  transition: height 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  z-index: 2;
+  padding: 12px 16px;
+  background: linear-gradient(to top, rgba(5,17,31,0.92) 0%, transparent 100%);
 }
 
-.water-level-label {
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #f0f6ff;
-  z-index: 3;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+.fluidity-bar-track {
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 0;
+  overflow: hidden;
+  margin-bottom: 6px;
 }
 
-.camera-shell {
-  flex-shrink: 0;
+.fluidity-bar-fill {
+  height: 100%;
+  background: #00f2fe;
+  transition: width 0.5s ease;
 }
 
-/* ─── Muscle selector (legacy util) ────────────────────────── */
-
-.muscle-selector {
+.camera-overlay-text {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Wipeout active state */
+.app-shell.is-wipeout-active .camera-overlay {
+  background: linear-gradient(to top, rgba(255,77,109,0.25) 0%, transparent 100%);
+}
+
+/* Info row below camera */
+.gym-info-row {
+  display: flex;
+  flex-shrink: 0;
+  border-top: 1px solid #1a2e45;
+  border-bottom: 1px solid #1a2e45;
+  background: #0b1929;
+}
+
+.gym-info-cell {
+  flex: 1;
+  padding: 10px 14px;
+  border-right: 1px solid #1a2e45;
+}
+
+.gym-info-cell:last-child {
+  border-right: none;
+}
+
+.gym-info-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2d4a66;
+  margin-bottom: 2px;
+}
+
+.gym-info-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f0f6ff;
+}
+
+/* CTA button */
+.gym-cta {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 16px;
+  background: #00f2fe;
+  border: none;
+  border-radius: 0;
+  color: #05111f;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
-.muscle-chip {
-  flex: 1;
-  padding: 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: all 0.2s;
+.gym-cta:hover {
+  background: #4facfe;
 }
 
-/* ─── Leaderboard power track (legacy) ─────────────────────── */
-
-.leaderboard-power-track {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  margin-top: 4px;
-  overflow: hidden;
+.gym-cta:disabled {
+  background: #1a2e45;
+  color: #2d4a66;
+  cursor: not-allowed;
 }
 
-.leaderboard-power-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #00f2fe, #4facfe);
-  transition: width 0.6s ease;
+.gym-cta.is-stop {
+  background: #0b1929;
+  color: #5a7a9a;
+  border-top: 1px solid #1a2e45;
 }
 
-/* ─── Social layout ─────────────────────────────────────────── */
-
-.social-layout {
+/* Session stat strip */
+.gym-stat-strip {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-shrink: 0;
+  background: #0b1929;
+  border-top: 1px solid #1a2e45;
 }
 
-/* ─── Home / Onboarding ─────────────────────────────────────── */
+.gym-stat-cell {
+  flex: 1;
+  padding: 8px 12px;
+  border-right: 1px solid #1a2e45;
+}
 
-.main-content {
-  padding: 0;
+.gym-stat-cell:last-child {
+  border-right: none;
+}
+
+/* ─── Social layout ──────────────────────────────────────────── */
+
+.social-shell {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Shared flat surface ───────────────────────────────────── */
+
+.surface {
+  background: #0b1929;
+  border: 1px solid #1a2e45;
+}
+
+.divider {
+  height: 1px;
+  background: #1a2e45;
 }

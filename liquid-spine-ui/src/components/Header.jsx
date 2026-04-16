@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const STATUS_CONFIG = {
-  connecting: { label: 'Connecting', color: '#3d5a80', dot: '#3d5a80' },
-  connected: { label: 'Live', color: '#00f2fe', dot: '#00f2fe' },
-  disconnected: { label: 'Offline', color: '#7a9bbf', dot: '#7a9bbf' },
-  error: { label: 'Error', color: '#ff4d6d', dot: '#ff4d6d' },
+  connecting: { label: 'Connecting', color: '#2d4a66' },
+  connected: { label: 'Live', color: '#00f2fe' },
+  disconnected: { label: 'Offline', color: '#2d4a66' },
+  error: { label: 'Error', color: '#ff4d6d' },
 };
 
 const Header = ({
@@ -19,199 +19,145 @@ const Header = ({
 }) => {
   const [hydrationInput, setHydrationInput] = useState('1');
   const [hydrationStatus, setHydrationStatus] = useState('');
-  const [isHydrationSubmitting, setIsHydrationSubmitting] = useState(false);
-  const [showHydrationForm, setShowHydrationForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const status = STATUS_CONFIG[realtimeStatus] || STATUS_CONFIG.disconnected;
 
-  const handleHydrationSubmit = async (event) => {
-    event.preventDefault();
+  const handleHydrationSubmit = async (e) => {
+    e.preventDefault();
     const credits = Number(hydrationInput);
-    if (!Number.isFinite(credits) || credits <= 0) {
-      setHydrationStatus('Enter a positive number.');
-      return;
-    }
-    setHydrationStatus('');
-    setIsHydrationSubmitting(true);
+    if (!Number.isFinite(credits) || credits <= 0) return;
+    setIsSubmitting(true);
     try {
       await onAddHydrationCredits?.(credits);
-      setHydrationStatus(`+${credits} added`);
+      setHydrationStatus(`+${credits}`);
       setHydrationInput('1');
-      setTimeout(() => setHydrationStatus(''), 2000);
-    } catch (error) {
-      setHydrationStatus(error.message || 'Could not add hydration.');
+      setTimeout(() => setHydrationStatus(''), 1800);
+    } catch {
+      setHydrationStatus('Error');
     } finally {
-      setIsHydrationSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <header className="flex items-start justify-between gap-4 mb-5">
-      {/* Left: branding */}
-      <div className="min-w-0">
-        <p
-          className="text-[10px] font-bold tracking-widest uppercase mb-0.5"
-          style={{ color: '#3d5a80' }}
-        >
-          {playerProfile?.username ? `${playerProfile.username}` : 'Training Session'}
-        </p>
-        <h1
-          className="text-2xl font-bold tracking-tight leading-none mb-2"
-          style={{ color: '#f0f6ff' }}
-        >
-          FORMFLOW
-        </h1>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Level pill */}
-          <span
-            className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase"
-            style={{
-              background: 'rgba(0, 242, 254, 0.08)',
-              border: '1px solid rgba(0, 242, 254, 0.2)',
-              color: '#00f2fe',
-            }}
-          >
-            {selectedLevel === 'pro' ? 'Pro' : 'Beginner'}
-          </span>
+    <header style={{ background: '#05111f' }}>
+      {/* Top row */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div>
+          <p className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#2d4a66' }}>
+            {playerProfile?.username || 'FormFlow'}
+          </p>
+          <h1 className="text-lg font-bold tracking-tight leading-none" style={{ color: '#f0f6ff' }}>
+            FORMFLOW
+          </h1>
+        </div>
 
-          {/* Realtime status */}
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
-            style={{
-              background: isWipeoutActive
-                ? 'rgba(255, 77, 109, 0.12)'
-                : 'rgba(255, 255, 255, 0.04)',
-              border: `1px solid ${isWipeoutActive ? 'rgba(255,77,109,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              color: isWipeoutActive ? '#ff4d6d' : status.color,
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: isWipeoutActive ? '#ff4d6d' : status.dot,
-                boxShadow: realtimeStatus === 'connected' ? `0 0 6px ${status.dot}` : 'none',
-              }}
-            />
-            {isWipeoutActive ? 'Wipeout!' : status.label}
-          </span>
+        {/* Stats row */}
+        <div className="flex items-stretch divide-x" style={{ borderColor: '#1a2e45', border: '1px solid #1a2e45' }}>
+          {/* Score */}
+          <div className="flex flex-col items-center px-4 py-2" style={{ minWidth: 64 }}>
+            <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#2d4a66' }}>Score</span>
+            <motion.span
+              key={playerScore}
+              initial={{ color: '#00f2fe' }}
+              animate={{ color: '#f0f6ff' }}
+              transition={{ duration: 0.5 }}
+              className="text-sm font-bold"
+            >
+              {playerScore}
+            </motion.span>
+          </div>
+
+          {/* Combo */}
+          <div className="flex flex-col items-center px-4 py-2" style={{ minWidth: 56 }}>
+            <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#2d4a66' }}>Combo</span>
+            <motion.span
+              key={combo}
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className="text-sm font-bold"
+              style={{ color: combo > 0 ? '#00f2fe' : '#5a7a9a' }}
+            >
+              ×{combo}
+            </motion.span>
+          </div>
+
+          {/* Hydration */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowForm(v => !v)}
+              className="flex flex-col items-center px-4 py-2 h-full"
+              style={{ minWidth: 64 }}
+            >
+              <span className="text-[9px] font-bold tracking-widest uppercase" style={{ color: '#2d4a66' }}>H₂O</span>
+              <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>
+                {hydrationStatus || (playerProfile?.hydrationCredits ?? '--')}
+              </span>
+            </button>
+
+            <AnimatePresence>
+              {showForm && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full z-50 p-3"
+                  style={{ background: '#0b1929', border: '1px solid #1a2e45', width: 140 }}
+                >
+                  <p className="text-[9px] font-bold tracking-widest uppercase mb-2" style={{ color: '#2d4a66' }}>Add Credits</p>
+                  <form onSubmit={handleHydrationSubmit} className="flex gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={hydrationInput}
+                      onChange={e => setHydrationInput(e.target.value)}
+                      className="flex-1 px-2 py-1.5 text-sm font-medium"
+                      style={{ background: '#05111f', border: '1px solid #1a2e45', color: '#f0f6ff', fontSize: 16, borderRadius: 0, outline: 'none', width: 52 }}
+                      aria-label="Credits to add"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-3 py-1.5 text-xs font-bold"
+                      style={{ background: '#00f2fe', color: '#05111f', border: 'none', borderRadius: 0, cursor: 'pointer' }}
+                    >
+                      {isSubmitting ? '…' : '+'}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
-      {/* Right: stats */}
-      <div className="flex items-start gap-2 flex-shrink-0">
-        {/* Score */}
-        <div
-          className="flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[52px]"
-          style={{
-            background: 'rgba(13, 31, 53, 0.8)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-          }}
+      {/* Bottom meta row */}
+      <div className="flex items-center gap-3 px-4 pb-2">
+        <span
+          className="text-[9px] font-bold tracking-widest uppercase px-2 py-1"
+          style={{ background: '#0b1929', border: '1px solid #1a2e45', color: '#f0f6ff' }}
         >
-          <span className="text-[9px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#3d5a80' }}>Score</span>
-          <motion.span
-            key={playerScore}
-            initial={{ scale: 1.15, color: '#00f2fe' }}
-            animate={{ scale: 1, color: '#f0f6ff' }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="text-base font-bold leading-none"
-          >
-            {playerScore}
-          </motion.span>
-        </div>
-
-        {/* Combo */}
-        <div
-          className="flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[48px]"
-          style={{
-            background: combo > 0 ? 'rgba(0, 242, 254, 0.08)' : 'rgba(13, 31, 53, 0.8)',
-            border: `1px solid ${combo > 0 ? 'rgba(0,242,254,0.2)' : 'rgba(255,255,255,0.06)'}`,
-          }}
+          {selectedLevel === 'pro' ? 'Pro' : 'Beginner'}
+        </span>
+        <span
+          className="flex items-center gap-1.5 text-[9px] font-bold tracking-wide uppercase"
+          style={{ color: isWipeoutActive ? '#ff4d6d' : status.color }}
         >
-          <span className="text-[9px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#3d5a80' }}>Combo</span>
-          <motion.span
-            key={combo}
-            initial={{ scale: 1.2 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="text-base font-bold leading-none"
-            style={{ color: combo > 0 ? '#00f2fe' : '#7a9bbf' }}
-          >
-            ×{combo}
-          </motion.span>
-        </div>
-
-        {/* Hydration */}
-        <div className="relative">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.96 }}
-            onClick={() => setShowHydrationForm((v) => !v)}
-            className="flex flex-col items-center px-3 py-2.5 rounded-xl min-w-[56px]"
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
             style={{
-              background: 'rgba(13, 31, 53, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: isWipeoutActive ? '#ff4d6d' : status.color,
+              boxShadow: realtimeStatus === 'connected' && !isWipeoutActive ? '0 0 4px #00f2fe' : 'none',
             }}
-          >
-            <span className="text-[9px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#3d5a80' }}>Hydration</span>
-            <span className="text-base font-bold leading-none" style={{ color: '#f0f6ff' }}>
-              {playerProfile?.hydrationCredits ?? '--'}
-            </span>
-          </motion.button>
-
-          <AnimatePresence>
-            {showHydrationForm && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="absolute right-0 top-full mt-2 z-50 p-3 rounded-xl w-44"
-                style={{
-                  background: '#0d1f35',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
-                }}
-              >
-                <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: '#3d5a80' }}>Add Credits</p>
-                <form onSubmit={handleHydrationSubmit} className="flex gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={hydrationInput}
-                    onChange={(e) => setHydrationInput(e.target.value)}
-                    className="flex-1 px-2 py-1.5 rounded-lg text-sm font-medium focus:outline-none focus:border-[#00f2fe]"
-                    style={{
-                      background: 'rgba(5, 17, 31, 0.8)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: '#f0f6ff',
-                      fontSize: '16px',
-                      width: '60px',
-                    }}
-                    aria-label="Credits to add"
-                  />
-                  <motion.button
-                    type="submit"
-                    whileTap={{ scale: 0.95 }}
-                    disabled={isHydrationSubmitting}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold"
-                    style={{
-                      background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
-                      color: '#05111f',
-                    }}
-                  >
-                    {isHydrationSubmitting ? '...' : 'Add'}
-                  </motion.button>
-                </form>
-                {hydrationStatus && (
-                  <p className="mt-1.5 text-[10px]" style={{ color: hydrationStatus.startsWith('+') ? '#00f2fe' : '#ff4d6d' }}>
-                    {hydrationStatus}
-                  </p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+          />
+          {isWipeoutActive ? 'Wipeout' : status.label}
+        </span>
       </div>
     </header>
   );

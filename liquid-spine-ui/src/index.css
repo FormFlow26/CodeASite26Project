@@ -3,20 +3,20 @@
 
 @theme {
   --color-bg-base: #05111f;
-  --color-bg-surface: #0d1f35;
-  --color-bg-elevated: #112340;
-  --color-accent-cyan: #00f2fe;
-  --color-accent-indigo: #6366f1;
+  --color-bg-surface: #0b1929;
+  --color-bg-elevated: #112240;
+  --color-border: #1a2e45;
+  --color-accent: #00f2fe;
+  --color-accent-dim: rgba(0, 242, 254, 0.12);
+  --color-indigo: #6366f1;
   --color-danger: #ff4d6d;
   --color-text-primary: #f0f6ff;
-  --color-text-secondary: #7a9bbf;
-  --color-text-muted: #3d5a80;
+  --color-text-secondary: #5a7a9a;
+  --color-text-muted: #2d4a66;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 20px;
-  --radius-full: 9999px;
-  --ease-out-quart: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --radius: 4px;
+  --radius-sm: 2px;
+  --radius-lg: 6px;
 }
 
 *,
@@ -33,16 +33,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-html,
-body,
-#root {
+html, body, #root {
   min-height: 100%;
 }
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #05111f;
+  background: #05111f;
   color: #f0f6ff;
   overflow-x: hidden;
 }

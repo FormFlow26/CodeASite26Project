@@ -43,18 +43,9 @@ const LandingPage = ({ onStart }) => {
     <div
       ref={heroRef}
       className="relative min-h-[100dvh] flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #07152c 0%, #041023 100%)' }}
+      style={{ background: '#05111f' }}
       data-lenis-prevent
     >
-      {/* Ambient glow orbs */}
-      <div
-        className="pointer-events-none absolute -top-20 -left-20 w-80 h-80 rounded-full opacity-30"
-        style={{ background: 'radial-gradient(circle, #00f2fe 0%, transparent 70%)', filter: 'blur(60px)' }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-20 -right-16 w-72 h-72 rounded-full opacity-20"
-        style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)', filter: 'blur(60px)' }}
-      />
 
       {/* Nav bar */}
       <nav className="relative z-10 flex items-center justify-between px-6 pt-8 pb-4">
@@ -74,11 +65,12 @@ const LandingPage = ({ onStart }) => {
         {/* Chip */}
         <div ref={chipRef} className="opacity-0 mb-5">
           <span
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide uppercase"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold tracking-widest uppercase"
             style={{
-              background: 'rgba(0, 242, 254, 0.1)',
-              border: '1px solid rgba(0, 242, 254, 0.25)',
+              background: '#05111f',
+              border: '1px solid #00f2fe',
               color: '#00f2fe',
+              borderRadius: 0,
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#00f2fe] animate-pulse" />
@@ -109,10 +101,10 @@ const LandingPage = ({ onStart }) => {
         {/* Hero image */}
         <div
           ref={imageRef}
-          className="opacity-0 relative w-full rounded-2xl overflow-hidden mb-6"
+          className="opacity-0 relative w-full overflow-hidden mb-6"
           style={{
-            border: '1px solid rgba(0, 242, 254, 0.12)',
-            background: 'rgba(13, 31, 53, 0.8)',
+            border: '1px solid #1a2e45',
+            background: '#0b1929',
           }}
         >
           <img
@@ -121,23 +113,18 @@ const LandingPage = ({ onStart }) => {
             className="w-full object-cover"
             style={{ maxHeight: '220px', objectPosition: 'top center' }}
           />
-          {/* Overlay gradient */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, #041023 0%, transparent 50%)' }}
-          />
           {/* Live score overlay */}
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-              style={{ background: 'rgba(0, 242, 254, 0.15)', border: '1px solid rgba(0,242,254,0.2)', color: '#00f2fe' }}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"
+              style={{ background: '#05111f', border: '1px solid #00f2fe', color: '#00f2fe', borderRadius: 0 }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#00f2fe] animate-pulse" />
               Live tracking
             </div>
             <div
-              className="px-2.5 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'rgba(13,31,53,0.9)', border: '1px solid rgba(255,255,255,0.08)', color: '#f0f6ff' }}
+              className="px-2.5 py-1 text-xs font-bold"
+              style={{ background: '#05111f', border: '1px solid #1a2e45', color: '#f0f6ff', borderRadius: 0 }}
             >
               Fluidity 87%
             </div>
@@ -149,10 +136,10 @@ const LandingPage = ({ onStart }) => {
           {STATS.map((stat) => (
             <div
               key={stat.label}
-              className="opacity-0 flex flex-col items-center py-3 rounded-xl"
+              className="opacity-0 flex flex-col items-center py-3"
               style={{
-                background: 'rgba(13, 31, 53, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: '#0b1929',
+                border: '1px solid #1a2e45',
               }}
             >
               <span className="text-xl font-bold" style={{ color: '#f0f6ff' }}>
@@ -170,8 +157,8 @@ const LandingPage = ({ onStart }) => {
               key={f.label}
               className="flex items-center gap-3 px-4 py-3 rounded-xl"
               style={{
-                background: 'rgba(13, 31, 53, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                background: '#0b1929',
+                border: '1px solid #1a2e45',
               }}
             >
               <div
@@ -192,11 +179,13 @@ const LandingPage = ({ onStart }) => {
             type="button"
             whileTap={{ scale: 0.96 }}
             onClick={() => onStart?.('signup')}
-            className="w-full py-4 rounded-xl text-sm font-bold tracking-wide transition-all duration-200"
+            className="w-full py-4 text-sm font-bold tracking-widest uppercase"
             style={{
-              background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)',
+              background: '#00f2fe',
               color: '#05111f',
-              boxShadow: '0 8px 24px rgba(0, 242, 254, 0.25)',
+              border: 'none',
+              borderRadius: 0,
+              cursor: 'pointer',
             }}
           >
             Get Started Free
@@ -205,11 +194,13 @@ const LandingPage = ({ onStart }) => {
             type="button"
             whileTap={{ scale: 0.96 }}
             onClick={() => onStart?.('login')}
-            className="w-full py-4 rounded-xl text-sm font-semibold tracking-wide transition-all duration-200"
+            className="w-full py-4 text-sm font-semibold"
             style={{
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#7a9bbf',
+              background: '#0b1929',
+              border: '1px solid #1a2e45',
+              borderRadius: 0,
+              color: '#5a7a9a',
+              cursor: 'pointer',
             }}
           >
             Sign In
